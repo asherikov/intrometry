@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<package format="2">
+    <name>intrometry</name>
+    <version>0.1.0</version>
+    <description>Inner telemetry collector</description>
+    <maintainer email="alexander@sherikov.net">Alexander Sherikov</maintainer>
+    <author email="alexander@sherikov.net">Alexander Sherikov</author>
+    <license>Apache 2.0</license>
+
+    <export>
+        <build_type>cmake</build_type>
+    </export>
+
+    <depend>ariles2_namevalue2_catkin</depend>
+
+    <build_depend>thread_supervisor</build_depend>
+    <build_depend>pal_statistics_msgs</build_depend>
+    <exec_depend>thread_supervisor</exec_depend>
+    <exec_depend>pal_statistics_msgs</exec_depend>
+
+    <test_depend>gtest</test_depend>
+</package>
