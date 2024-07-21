@@ -5,6 +5,13 @@ defaults:
         shell: bash
 
 jobs:
+    spell:
+        runs-on: ubuntu-22.04
+        steps:
+            - uses: actions/checkout@v4
+            - run: make install_deps_common
+            - run: make spell
+
     jammy_ccws:
         runs-on: ubuntu-22.04
         steps:
