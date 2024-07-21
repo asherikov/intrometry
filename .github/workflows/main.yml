@@ -1,0 +1,33 @@
+on: [push, pull_request]
+
+defaults:
+    run:
+        shell: bash
+
+jobs:
+    jammy_ccws:
+        runs-on: ubuntu-22.04
+        steps:
+            - uses: actions/checkout@v4
+              with:
+                repository: asherikov/ccws
+            - uses: actions/checkout@v4
+              with:
+                path: src/intrometry
+            - uses: actions/checkout@v4
+              with:
+                repository: asherikov/thread_supervisor
+                path: src/thread_supervisor
+            - uses: actions/checkout@v4
+              with:
+                repository: asherikov/ariles
+                ref: pkg_ws_2
+                path: src/ariles
+            - run: make bp_install_build BUILD_PROFILE=reldebug
+            - run: make bp_install_build BUILD_PROFILE=scan_build
+            - run: make bp_install_build BUILD_PROFILE=static_checks
+            - run: make BUILD_PROFILE=static_checks
+            - run: make dep_install PKG=intrometry
+            - run: make intrometry BUILD_PROFILE=scan_build
+            - run: make intrometry
+            - run: make test PKG=intrometry

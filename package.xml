@@ -11,10 +11,12 @@
         <build_type>cmake</build_type>
     </export>
 
-    <depend>ariles2_namevalue2_catkin</depend>
+    <depend>ariles2_namevalue2_ws</depend>
 
+    <build_depend>rclcpp</build_depend>
     <build_depend>thread_supervisor</build_depend>
     <build_depend>pal_statistics_msgs</build_depend>
+    <exec_depend>rclcpp</exec_depend>
     <exec_depend>thread_supervisor</exec_depend>
     <exec_depend>pal_statistics_msgs</exec_depend>
 

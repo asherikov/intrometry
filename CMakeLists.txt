@@ -24,7 +24,7 @@ endif()
 find_package(rclcpp REQUIRED)
 find_package(pal_statistics_msgs REQUIRED)
 find_package(thread_supervisor REQUIRED)
-find_package(ariles2_namevalue2_catkin REQUIRED)
+find_package(ariles2_namevalue2_ws REQUIRED)
 
 
 add_library(${PROJECT_NAME} SHARED
@@ -90,7 +90,7 @@ file(
     "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
     "include(\"\${CMAKE_CURRENT_LIST_DIR}/${PROJECT_NAME}Targets.cmake\")\n"
     "include(CMakeFindDependencyMacro)\n"
-    "find_dependency(ariles2_namevalue2_catkin)"
+    "find_dependency(ariles2_namevalue2_ws)"
 )
 
 install(
