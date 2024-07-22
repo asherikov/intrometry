@@ -43,10 +43,11 @@ TEST_F(IntrometryFixture, ArilesDynamic)
 }
 
 
-TEST_F(IntrometryFixture, Arilespersistent)
+TEST_F(IntrometryFixture, ArilesPersistent)
 {
-    const intrometry_tests::ArilesDebug debug{};
+    intrometry_tests::ArilesDebug debug{};
     intrometry_publisher_.assign(debug, intrometry::Source::Parameters(/*persistent_structure=*/true));
+    debug.vec_ = { 3.4, 2.2, 2.1 };
 
     for (std::size_t i = 0; i < 3; ++i)
     {

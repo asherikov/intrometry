@@ -19,6 +19,7 @@
 #include <pal_statistics_msgs/msg/statistics_values.hpp>
 
 #include <thread_supervisor/supervisor.h>
+#include <ariles2/adapters/std_vector.h>
 
 
 namespace intrometry_tests
@@ -35,7 +36,8 @@ namespace intrometry_tests
 #define ARILES2_DEFAULT_ID "ArilesDebug"
 #define ARILES2_ENTRIES(v)                                                                                             \
     ARILES2_TYPED_ENTRY_(v, duration, double)                                                                          \
-    ARILES2_TYPED_ENTRY_(v, size, std::size_t)
+    ARILES2_TYPED_ENTRY_(v, size, std::size_t)                                                                         \
+    ARILES2_TYPED_ENTRY_(v, vec, std::vector<float>)
 #include ARILES2_INITIALIZE
     public:
         virtual ~ArilesDebug() = default;
@@ -64,7 +66,11 @@ namespace intrometry_tests
             subscription_ = node->create_subscription<t_Message>(
                     topic,
                     rclcpp::QoS(/*history_depth=*/10).best_effort(),
-                    [this](const t_Message & /*msg*/) { ++counter_; });
+                    [this](const t_Message &msg)
+                    {
+                        pal_statistics_msgs::msg::to_block_style_yaml(msg, std::cerr);
+                        ++counter_;
+                    });
         }
 
         [[nodiscard]] bool atLeastOne() const
