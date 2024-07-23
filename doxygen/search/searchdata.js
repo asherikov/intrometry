@@ -1,6 +1,6 @@
 var indexSectionsWithContent =
 {
-  0: "acdgilmnprstvw~",
+  0: "acdgilmnprstuvw~",
   1: "acimps",
   2: "ai",
   3: "cdilprs",
@@ -8,7 +8,8 @@ var indexSectionsWithContent =
   5: "cdinprsv",
   6: "mnv",
   7: "a",
-  8: "cil"
+  8: "u",
+  9: "cil"
 };
 
 var indexSectionNames =
@@ -21,7 +22,8 @@ var indexSectionNames =
   5: "variables",
   6: "typedefs",
   7: "defines",
-  8: "pages"
+  8: "groups",
+  9: "pages"
 };
 
 var indexSectionLabels =
@@ -34,6 +36,7 @@ var indexSectionLabels =
   5: "Variables",
   6: "Typedefs",
   7: "Macros",
-  8: "Pages"
+  8: "Modules",
+  9: "Pages"
 };
 

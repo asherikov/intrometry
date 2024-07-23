@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['intrometry_0',['intrometry',['../index.html',1,'']]]
+  ['intrometry_0',['Intrometry',['../index.html',1,'']]]
 ];

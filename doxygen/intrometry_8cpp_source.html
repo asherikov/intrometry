@@ -121,58 +121,59 @@ $(function() {
 <div class="line"><a id="l00043" name="l00043"></a><span class="lineno">   43</span>}</div>
 <div class="line"><a id="l00044" name="l00044"></a><span class="lineno">   44</span> </div>
 <div class="line"><a id="l00045" name="l00045"></a><span class="lineno">   45</span> </div>
-<div class="line"><a id="l00046" name="l00046"></a><span class="lineno"><a class="line" href="intrometry_8cpp.html#a55e7dc00ee64e425de48d994e720d03b">   46</a></span><a class="code hl_function" href="intrometry_8cpp.html#a9c82439b53b388e64e47fad091395308">TEST_F</a>(IntrometryFixture, Arilespersistent)</div>
+<div class="line"><a id="l00046" name="l00046"></a><span class="lineno"><a class="line" href="intrometry_8cpp.html#a8813046cb01831755bbbe131d8e4161a">   46</a></span><a class="code hl_function" href="intrometry_8cpp.html#a9c82439b53b388e64e47fad091395308">TEST_F</a>(IntrometryFixture, ArilesPersistent)</div>
 <div class="line"><a id="l00047" name="l00047"></a><span class="lineno">   47</span>{</div>
-<div class="line"><a id="l00048" name="l00048"></a><span class="lineno">   48</span>    <span class="keyword">const</span> <a class="code hl_class" href="classintrometry__tests_1_1ArilesDebug.html">intrometry_tests::ArilesDebug</a> debug{};</div>
+<div class="line"><a id="l00048" name="l00048"></a><span class="lineno">   48</span>    <a class="code hl_class" href="classintrometry__tests_1_1ArilesDebug.html">intrometry_tests::ArilesDebug</a> debug{};</div>
 <div class="line"><a id="l00049" name="l00049"></a><span class="lineno">   49</span>    intrometry_publisher_.assign(debug, <a class="code hl_class" href="classintrometry_1_1Source_1_1Parameters.html">intrometry::Source::Parameters</a>(<span class="comment">/*persistent_structure=*/</span><span class="keyword">true</span>));</div>
-<div class="line"><a id="l00050" name="l00050"></a><span class="lineno">   50</span> </div>
-<div class="line"><a id="l00051" name="l00051"></a><span class="lineno">   51</span>    <span class="keywordflow">for</span> (std::size_t i = 0; i &lt; 3; ++i)</div>
-<div class="line"><a id="l00052" name="l00052"></a><span class="lineno">   52</span>    {</div>
-<div class="line"><a id="l00053" name="l00053"></a><span class="lineno">   53</span>        intrometry_publisher_.write(debug);</div>
-<div class="line"><a id="l00054" name="l00054"></a><span class="lineno">   54</span>    }</div>
-<div class="line"><a id="l00055" name="l00055"></a><span class="lineno">   55</span> </div>
-<div class="line"><a id="l00056" name="l00056"></a><span class="lineno">   56</span>    std::this_thread::sleep_for(std::chrono::milliseconds(500));</div>
-<div class="line"><a id="l00057" name="l00057"></a><span class="lineno">   57</span>    intrometry_publisher_.retract(debug);</div>
-<div class="line"><a id="l00058" name="l00058"></a><span class="lineno">   58</span>    ASSERT_TRUE(checkReceived());</div>
-<div class="line"><a id="l00059" name="l00059"></a><span class="lineno">   59</span>}</div>
-<div class="line"><a id="l00060" name="l00060"></a><span class="lineno">   60</span> </div>
+<div class="line"><a id="l00050" name="l00050"></a><span class="lineno">   50</span>    debug.vec_ = { 3.4, 2.2, 2.1 };</div>
+<div class="line"><a id="l00051" name="l00051"></a><span class="lineno">   51</span> </div>
+<div class="line"><a id="l00052" name="l00052"></a><span class="lineno">   52</span>    <span class="keywordflow">for</span> (std::size_t i = 0; i &lt; 3; ++i)</div>
+<div class="line"><a id="l00053" name="l00053"></a><span class="lineno">   53</span>    {</div>
+<div class="line"><a id="l00054" name="l00054"></a><span class="lineno">   54</span>        intrometry_publisher_.write(debug);</div>
+<div class="line"><a id="l00055" name="l00055"></a><span class="lineno">   55</span>    }</div>
+<div class="line"><a id="l00056" name="l00056"></a><span class="lineno">   56</span> </div>
+<div class="line"><a id="l00057" name="l00057"></a><span class="lineno">   57</span>    std::this_thread::sleep_for(std::chrono::milliseconds(500));</div>
+<div class="line"><a id="l00058" name="l00058"></a><span class="lineno">   58</span>    intrometry_publisher_.retract(debug);</div>
+<div class="line"><a id="l00059" name="l00059"></a><span class="lineno">   59</span>    ASSERT_TRUE(checkReceived());</div>
+<div class="line"><a id="l00060" name="l00060"></a><span class="lineno">   60</span>}</div>
 <div class="line"><a id="l00061" name="l00061"></a><span class="lineno">   61</span> </div>
-<div class="line"><a id="l00062" name="l00062"></a><span class="lineno"><a class="line" href="intrometry_8cpp.html#a82af8eaf149bd190391f4bcd2ef9eaa2">   62</a></span><a class="code hl_function" href="intrometry_8cpp.html#a9c82439b53b388e64e47fad091395308">TEST_F</a>(IntrometryFixture, MultipleSources)</div>
-<div class="line"><a id="l00063" name="l00063"></a><span class="lineno">   63</span>{</div>
-<div class="line"><a id="l00064" name="l00064"></a><span class="lineno">   64</span>    <span class="keyword">const</span> <a class="code hl_class" href="classintrometry__tests_1_1ArilesDebug.html">intrometry_tests::ArilesDebug</a> debug0{};</div>
-<div class="line"><a id="l00065" name="l00065"></a><span class="lineno">   65</span>    <span class="keyword">const</span> <a class="code hl_class" href="classintrometry__tests_1_1ArilesDebug1.html">intrometry_tests::ArilesDebug1</a> debug1{};</div>
-<div class="line"><a id="l00066" name="l00066"></a><span class="lineno">   66</span>    intrometry_publisher_.assignBatch(<a class="code hl_class" href="classintrometry_1_1Source_1_1Parameters.html">intrometry::Source::Parameters</a>(<span class="comment">/*persistent_structure=*/</span><span class="keyword">true</span>), debug0, debug1);</div>
-<div class="line"><a id="l00067" name="l00067"></a><span class="lineno">   67</span> </div>
-<div class="line"><a id="l00068" name="l00068"></a><span class="lineno">   68</span>    <span class="keywordflow">for</span> (std::size_t i = 0; i &lt; 3; ++i)</div>
-<div class="line"><a id="l00069" name="l00069"></a><span class="lineno">   69</span>    {</div>
-<div class="line"><a id="l00070" name="l00070"></a><span class="lineno">   70</span>        intrometry_publisher_.writeBatch(0, debug0, debug1);</div>
-<div class="line"><a id="l00071" name="l00071"></a><span class="lineno">   71</span>    }</div>
-<div class="line"><a id="l00072" name="l00072"></a><span class="lineno">   72</span> </div>
-<div class="line"><a id="l00073" name="l00073"></a><span class="lineno">   73</span>    std::this_thread::sleep_for(std::chrono::milliseconds(500));</div>
-<div class="line"><a id="l00074" name="l00074"></a><span class="lineno">   74</span>    intrometry_publisher_.retractBatch(debug0, debug1);</div>
-<div class="line"><a id="l00075" name="l00075"></a><span class="lineno">   75</span>    ASSERT_TRUE(checkReceived());</div>
-<div class="line"><a id="l00076" name="l00076"></a><span class="lineno">   76</span>}</div>
-<div class="line"><a id="l00077" name="l00077"></a><span class="lineno">   77</span> </div>
+<div class="line"><a id="l00062" name="l00062"></a><span class="lineno">   62</span> </div>
+<div class="line"><a id="l00063" name="l00063"></a><span class="lineno"><a class="line" href="intrometry_8cpp.html#a82af8eaf149bd190391f4bcd2ef9eaa2">   63</a></span><a class="code hl_function" href="intrometry_8cpp.html#a9c82439b53b388e64e47fad091395308">TEST_F</a>(IntrometryFixture, MultipleSources)</div>
+<div class="line"><a id="l00064" name="l00064"></a><span class="lineno">   64</span>{</div>
+<div class="line"><a id="l00065" name="l00065"></a><span class="lineno">   65</span>    <span class="keyword">const</span> <a class="code hl_class" href="classintrometry__tests_1_1ArilesDebug.html">intrometry_tests::ArilesDebug</a> debug0{};</div>
+<div class="line"><a id="l00066" name="l00066"></a><span class="lineno">   66</span>    <span class="keyword">const</span> <a class="code hl_class" href="classintrometry__tests_1_1ArilesDebug1.html">intrometry_tests::ArilesDebug1</a> debug1{};</div>
+<div class="line"><a id="l00067" name="l00067"></a><span class="lineno">   67</span>    intrometry_publisher_.assignBatch(<a class="code hl_class" href="classintrometry_1_1Source_1_1Parameters.html">intrometry::Source::Parameters</a>(<span class="comment">/*persistent_structure=*/</span><span class="keyword">true</span>), debug0, debug1);</div>
+<div class="line"><a id="l00068" name="l00068"></a><span class="lineno">   68</span> </div>
+<div class="line"><a id="l00069" name="l00069"></a><span class="lineno">   69</span>    <span class="keywordflow">for</span> (std::size_t i = 0; i &lt; 3; ++i)</div>
+<div class="line"><a id="l00070" name="l00070"></a><span class="lineno">   70</span>    {</div>
+<div class="line"><a id="l00071" name="l00071"></a><span class="lineno">   71</span>        intrometry_publisher_.writeBatch(0, debug0, debug1);</div>
+<div class="line"><a id="l00072" name="l00072"></a><span class="lineno">   72</span>    }</div>
+<div class="line"><a id="l00073" name="l00073"></a><span class="lineno">   73</span> </div>
+<div class="line"><a id="l00074" name="l00074"></a><span class="lineno">   74</span>    std::this_thread::sleep_for(std::chrono::milliseconds(500));</div>
+<div class="line"><a id="l00075" name="l00075"></a><span class="lineno">   75</span>    intrometry_publisher_.retractBatch(debug0, debug1);</div>
+<div class="line"><a id="l00076" name="l00076"></a><span class="lineno">   76</span>    ASSERT_TRUE(checkReceived());</div>
+<div class="line"><a id="l00077" name="l00077"></a><span class="lineno">   77</span>}</div>
 <div class="line"><a id="l00078" name="l00078"></a><span class="lineno">   78</span> </div>
 <div class="line"><a id="l00079" name="l00079"></a><span class="lineno">   79</span> </div>
-<div class="line"><a id="l00080" name="l00080"></a><span class="lineno"><a class="line" href="intrometry_8cpp.html#a3c04138a5bfe5d72780bb7e82a18e627">   80</a></span><span class="keywordtype">int</span> <a class="code hl_function" href="intrometry_8cpp.html#a3c04138a5bfe5d72780bb7e82a18e627">main</a>(<span class="keywordtype">int</span> argc, <span class="keywordtype">char</span> **argv)</div>
-<div class="line"><a id="l00081" name="l00081"></a><span class="lineno">   81</span>{</div>
-<div class="line"><a id="l00082" name="l00082"></a><span class="lineno">   82</span>    rclcpp::init(argc, argv);</div>
-<div class="line"><a id="l00083" name="l00083"></a><span class="lineno">   83</span>    testing::InitGoogleTest(&amp;argc, argv);</div>
-<div class="line"><a id="l00084" name="l00084"></a><span class="lineno">   84</span>    <span class="keywordflow">return</span> RUN_ALL_TESTS();</div>
-<div class="line"><a id="l00085" name="l00085"></a><span class="lineno">   85</span>}</div>
+<div class="line"><a id="l00080" name="l00080"></a><span class="lineno">   80</span> </div>
+<div class="line"><a id="l00081" name="l00081"></a><span class="lineno"><a class="line" href="intrometry_8cpp.html#a3c04138a5bfe5d72780bb7e82a18e627">   81</a></span><span class="keywordtype">int</span> <a class="code hl_function" href="intrometry_8cpp.html#a3c04138a5bfe5d72780bb7e82a18e627">main</a>(<span class="keywordtype">int</span> argc, <span class="keywordtype">char</span> **argv)</div>
+<div class="line"><a id="l00082" name="l00082"></a><span class="lineno">   82</span>{</div>
+<div class="line"><a id="l00083" name="l00083"></a><span class="lineno">   83</span>    rclcpp::init(argc, argv);</div>
+<div class="line"><a id="l00084" name="l00084"></a><span class="lineno">   84</span>    testing::InitGoogleTest(&amp;argc, argv);</div>
+<div class="line"><a id="l00085" name="l00085"></a><span class="lineno">   85</span>    <span class="keywordflow">return</span> RUN_ALL_TESTS();</div>
+<div class="line"><a id="l00086" name="l00086"></a><span class="lineno">   86</span>}</div>
 <div class="ttc" id="aclassanonymous__namespace_02intrometry_8cpp_03_1_1IntrometryFixture_html"><div class="ttname"><a href="classanonymous__namespace_02intrometry_8cpp_03_1_1IntrometryFixture.html">anonymous_namespace{intrometry.cpp}::IntrometryFixture</a></div><div class="ttdef"><b>Definition:</b> <a href="intrometry_8cpp_source.html#l00014">intrometry.cpp:15</a></div></div>
 <div class="ttc" id="aclassanonymous__namespace_02intrometry_8cpp_03_1_1IntrometryFixture_html_a32f8873826de57a57b6b881a591c1521"><div class="ttname"><a href="classanonymous__namespace_02intrometry_8cpp_03_1_1IntrometryFixture.html#a32f8873826de57a57b6b881a591c1521">anonymous_namespace{intrometry.cpp}::IntrometryFixture::IntrometryFixture</a></div><div class="ttdeci">IntrometryFixture()</div><div class="ttdef"><b>Definition:</b> <a href="intrometry_8cpp_source.html#l00020">intrometry.cpp:20</a></div></div>
 <div class="ttc" id="aclassanonymous__namespace_02intrometry_8cpp_03_1_1IntrometryFixture_html_a68e35c864aa892597c8db9b4b556fc3e"><div class="ttname"><a href="classanonymous__namespace_02intrometry_8cpp_03_1_1IntrometryFixture.html#a68e35c864aa892597c8db9b4b556fc3e">anonymous_namespace{intrometry.cpp}::IntrometryFixture::intrometry_publisher_</a></div><div class="ttdeci">intrometry::Publisher intrometry_publisher_</div><div class="ttdef"><b>Definition:</b> <a href="intrometry_8cpp_source.html#l00017">intrometry.cpp:17</a></div></div>
-<div class="ttc" id="aclassintrometry_1_1Publisher_html"><div class="ttname"><a href="classintrometry_1_1Publisher.html">intrometry::Publisher</a></div><div class="ttdef"><b>Definition:</b> <a href="publisher_8h_source.html#l00019">publisher.h:20</a></div></div>
+<div class="ttc" id="aclassintrometry_1_1Publisher_html"><div class="ttname"><a href="classintrometry_1_1Publisher.html">intrometry::Publisher</a></div><div class="ttdoc">Publish data.</div><div class="ttdef"><b>Definition:</b> <a href="publisher_8h_source.html#l00025">publisher.h:26</a></div></div>
 <div class="ttc" id="aclassintrometry_1_1Publisher_html_a7f2bbe37707f161a5eeef85103f4e4bb"><div class="ttname"><a href="classintrometry_1_1Publisher.html#a7f2bbe37707f161a5eeef85103f4e4bb">intrometry::Publisher::initialize</a></div><div class="ttdeci">bool initialize(const std::string &amp;publisher_id, const Parameters &amp;parameters=Parameters())</div></div>
-<div class="ttc" id="aclassintrometry_1_1Source_1_1Parameters_html"><div class="ttname"><a href="classintrometry_1_1Source_1_1Parameters.html">intrometry::Source::Parameters</a></div><div class="ttdef"><b>Definition:</b> <a href="source_8h_source.html#l00019">source.h:20</a></div></div>
-<div class="ttc" id="aclassintrometry__tests_1_1ArilesDebug1_html"><div class="ttname"><a href="classintrometry__tests_1_1ArilesDebug1.html">intrometry_tests::ArilesDebug1</a></div><div class="ttdef"><b>Definition:</b> <a href="common_8h_source.html#l00044">common.h:45</a></div></div>
-<div class="ttc" id="aclassintrometry__tests_1_1ArilesDebug_html"><div class="ttname"><a href="classintrometry__tests_1_1ArilesDebug.html">intrometry_tests::ArilesDebug</a></div><div class="ttdef"><b>Definition:</b> <a href="common_8h_source.html#l00033">common.h:34</a></div></div>
-<div class="ttc" id="aclassintrometry__tests_1_1SubscriberNode_html"><div class="ttname"><a href="classintrometry__tests_1_1SubscriberNode.html">intrometry_tests::SubscriberNode</a></div><div class="ttdef"><b>Definition:</b> <a href="common_8h_source.html#l00077">common.h:78</a></div></div>
-<div class="ttc" id="aclassintrometry__tests_1_1SubscriberNode_html_adbbc193aeb0ede7943037afb7cda90ac"><div class="ttname"><a href="classintrometry__tests_1_1SubscriberNode.html#adbbc193aeb0ede7943037afb7cda90ac">intrometry_tests::SubscriberNode::initialize</a></div><div class="ttdeci">void initialize(const std::string &amp;topic)</div><div class="ttdef"><b>Definition:</b> <a href="common_8h_source.html#l00093">common.h:93</a></div></div>
+<div class="ttc" id="aclassintrometry_1_1Source_1_1Parameters_html"><div class="ttname"><a href="classintrometry_1_1Source_1_1Parameters.html">intrometry::Source::Parameters</a></div><div class="ttdef"><b>Definition:</b> <a href="source_8h_source.html#l00028">source.h:29</a></div></div>
+<div class="ttc" id="aclassintrometry__tests_1_1ArilesDebug1_html"><div class="ttname"><a href="classintrometry__tests_1_1ArilesDebug1.html">intrometry_tests::ArilesDebug1</a></div><div class="ttdef"><b>Definition:</b> <a href="common_8h_source.html#l00046">common.h:47</a></div></div>
+<div class="ttc" id="aclassintrometry__tests_1_1ArilesDebug_html"><div class="ttname"><a href="classintrometry__tests_1_1ArilesDebug.html">intrometry_tests::ArilesDebug</a></div><div class="ttdef"><b>Definition:</b> <a href="common_8h_source.html#l00034">common.h:35</a></div></div>
+<div class="ttc" id="aclassintrometry__tests_1_1SubscriberNode_html"><div class="ttname"><a href="classintrometry__tests_1_1SubscriberNode.html">intrometry_tests::SubscriberNode</a></div><div class="ttdef"><b>Definition:</b> <a href="common_8h_source.html#l00083">common.h:84</a></div></div>
+<div class="ttc" id="aclassintrometry__tests_1_1SubscriberNode_html_adbbc193aeb0ede7943037afb7cda90ac"><div class="ttname"><a href="classintrometry__tests_1_1SubscriberNode.html#adbbc193aeb0ede7943037afb7cda90ac">intrometry_tests::SubscriberNode::initialize</a></div><div class="ttdeci">void initialize(const std::string &amp;topic)</div><div class="ttdef"><b>Definition:</b> <a href="common_8h_source.html#l00099">common.h:99</a></div></div>
 <div class="ttc" id="acommon_8h_html"><div class="ttname"><a href="common_8h.html">common.h</a></div></div>
-<div class="ttc" id="aintrometry_8cpp_html_a3c04138a5bfe5d72780bb7e82a18e627"><div class="ttname"><a href="intrometry_8cpp.html#a3c04138a5bfe5d72780bb7e82a18e627">main</a></div><div class="ttdeci">int main(int argc, char **argv)</div><div class="ttdef"><b>Definition:</b> <a href="intrometry_8cpp_source.html#l00080">intrometry.cpp:80</a></div></div>
+<div class="ttc" id="aintrometry_8cpp_html_a3c04138a5bfe5d72780bb7e82a18e627"><div class="ttname"><a href="intrometry_8cpp.html#a3c04138a5bfe5d72780bb7e82a18e627">main</a></div><div class="ttdeci">int main(int argc, char **argv)</div><div class="ttdef"><b>Definition:</b> <a href="intrometry_8cpp_source.html#l00081">intrometry.cpp:81</a></div></div>
 <div class="ttc" id="aintrometry_8cpp_html_a9c82439b53b388e64e47fad091395308"><div class="ttname"><a href="intrometry_8cpp.html#a9c82439b53b388e64e47fad091395308">TEST_F</a></div><div class="ttdeci">TEST_F(IntrometryFixture, ArilesDynamic)</div><div class="ttdef"><b>Definition:</b> <a href="intrometry_8cpp_source.html#l00029">intrometry.cpp:29</a></div></div>
 </div><!-- fragment --></div><!-- contents -->
 <!-- start footer part -->
