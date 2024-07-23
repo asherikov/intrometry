@@ -3,7 +3,8 @@
     @author  Alexander Sherikov
     @copyright 2024 Alexander Sherikov. Licensed under the Apache License,
     Version 2.0. (see LICENSE or http://www.apache.org/licenses/LICENSE-2.0)
-    @brief
+
+    @brief Source parameters and necessary ariles inclusions.
 */
 
 #pragma once
@@ -13,6 +14,14 @@
 
 namespace intrometry
 {
+    /**
+     * @brief Data source (parameters).
+     *
+     * Currently contains only parameters that can be used when assigning a
+     * bare ariles class to an intrometry publisher.
+     *
+     * @ingroup API
+     */
     class Source
     {
     public:

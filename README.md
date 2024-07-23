@@ -25,7 +25,7 @@ ROS2 telemetry collection utility that addresses the same problem as
 main API difference is that `intrometry` relies on `ariles` serialization
 library <https://github.com/asherikov/ariles> instead of macro.
 
-Doxygen documentation: <https://asherikov.github.io/intrometry/doxygen>
+Doxygen documentation: <https://asherikov.github.io/intrometry/doxygen/group__API.html>
 
 
 Comparison

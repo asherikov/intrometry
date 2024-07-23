@@ -10,8 +10,10 @@ cbegin
 cend
 combopublisherfixture
 cppcheck
+defgroup
 google
 gtest
+ingroup
 intrometry
 intrometryfixture
 killall
