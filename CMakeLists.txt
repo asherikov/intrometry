@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.8)
-project(intrometry VERSION 0.1.0 LANGUAGES CXX)
+project(intrometry VERSION 0.2.0 LANGUAGES CXX)
 
 if(CCWS_CLANG_TIDY)
     set(CMAKE_CXX_CLANG_TIDY "${CCWS_CLANG_TIDY}" CACHE STRING "" FORCE)
