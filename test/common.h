@@ -68,7 +68,9 @@ namespace intrometry_tests
                     rclcpp::QoS(/*history_depth=*/10).best_effort(),
                     [this](const t_Message &msg)
                     {
-                        pal_statistics_msgs::msg::to_block_style_yaml(msg, std::cerr);
+                        std::stringstream output;
+                        pal_statistics_msgs::msg::to_block_style_yaml(msg, output);
+                        std::cerr << output.str();
                         ++counter_;
                     });
         }
@@ -83,10 +85,10 @@ namespace intrometry_tests
     class SubscriberNode : public tut::thread::InheritableSupervisor<>
     {
     public:
+        std::shared_ptr<rclcpp::Node> node_;
         Subscription<NamesMsg> names_subscription_;
         Subscription<ValuesMsg> values_subscription_;
         std::thread spinner_;
-        std::shared_ptr<rclcpp::Node> node_;
 
     protected:
         // cppcheck-suppress virtualCallInConstructor
@@ -127,12 +129,14 @@ namespace intrometry_tests
 
         void spin()
         {
-            rclcpp::WallRate loop_rate(1000);
+            const std::chrono::nanoseconds step(std::nano::den / 1000);
 
+            std::chrono::time_point<std::chrono::steady_clock> time_threshold = std::chrono::steady_clock::now();
             while (rclcpp::ok() and not isThreadSupervisorInterrupted())
             {
                 rclcpp::spin_some(node_);
-                loop_rate.sleep();
+                time_threshold += step;
+                std::this_thread::sleep_until(time_threshold);
             }
             getThreadSupervisor().interrupt();
         }
