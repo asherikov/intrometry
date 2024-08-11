@@ -133,3 +133,10 @@ Design
       meant to be used sparingly.
     - `write()` is a "light" method that should be suitable for soft real time
       applications.
+
+TODO
+====
+
+- Do data preprocessing in the publisher thread, e.g., with `ariles` finalize
+  visitor. That would require locking of the data, one option is to keep two
+  copies of the class and swapping them.
