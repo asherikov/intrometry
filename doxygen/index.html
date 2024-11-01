@@ -108,7 +108,7 @@ $(function() {
 <div class="line">    publisher.write(debug);</div>
 <div class="line">}</div>
 <div class="line">publisher.retract(debug);</div>
-</div><!-- fragment --><p>Example of a published message (<code>pal_statistics_msgs/msg/statistics_names</code>) </p><div class="fragment"><div class="line">header:</div>
+</div><!-- fragment --><p>Example of a published message (<code>plotjuggler_msgs/msg/statistics_names</code>) </p><div class="fragment"><div class="line">header:</div>
 <div class="line">  stamp:</div>
 <div class="line">    sec: 0</div>
 <div class="line">    nanosec: 0</div>
@@ -132,22 +132,26 @@ $(function() {
 <li><code>cmake</code></li>
 <li><code>ariles</code> (<code>ariles2_namevalue2_ws</code>) <a href="https://github.com/asherikov/ariles/tree/pkg_ws_2">https://github.com/asherikov/ariles/tree/pkg_ws_2</a></li>
 <li><code>thread_supervisor</code> <a href="https://github.com/asherikov/thread_supervisor">https://github.com/asherikov/thread_supervisor</a></li>
-<li><code>rclcpp</code> / <code>pal_statistics_msgs</code></li>
+<li><code>rclcpp</code> / <code>plotjuggler_msgs</code></li>
 </ul>
 <h1>Design </h1>
 <ul>
-<li>Publisher creates a dedicated ROS2 node and spawns a publishing thread that takes care of sending data using <code>pal_statistics_msgs</code> at a given frequency. Consequently, data can be viewed with <code>PlotJuggler</code> <a href="https://plotjuggler.io/">https://plotjuggler.io/</a> as if it was sent by <code>pal_statistics</code> package. Keep in mind that <code>PlotJuggler</code> has a flaw that may result in a collision of metric names <a href="https://github.com/facontidavide/PlotJuggler/pull/339">https://github.com/facontidavide/PlotJuggler/pull/339</a> &ndash; <code>intrometry</code> makes an effort to avoid this, but it is still possible.</li>
+<li>Publisher creates a dedicated ROS2 node and spawns a publishing thread that takes care of sending data using <code>plotjuggler_msgs</code> at a given frequency. Recorded ROS bags can be viewed with <code>PlotJuggler</code> <a href="https://plotjuggler.io/">https://plotjuggler.io/</a>. Keep in mind that <code>PlotJuggler</code> has a flaw that may result in a collision of metric names <a href="https://github.com/facontidavide/PlotJuggler/pull/339">https://github.com/facontidavide/PlotJuggler/pull/339</a> &ndash; <code>intrometry</code> makes an effort to avoid this, but it is still possible.</li>
 <li><code>intrometry</code> tries to interfere as little as possible with the execution of other code, in particular this means that:<ul>
 <li><code>intrometry</code> would rather lose data than block calling thread for more time than is needed for copying it;</li>
 <li><code>intrometry</code> ignores failures, e.g., due to failed initialization, which allows to disable it by simply providing an empty id.</li>
 </ul>
 </li>
 <li>API:<ul>
-<li>Public API is ROS2 / <code>pal_statistics_msgs</code> agnostic, other backends may be implemented in the future.</li>
+<li>Public API is ROS2 / <code>plotjuggler_msgs</code> agnostic, other backends may be implemented in the future.</li>
 <li><code>initialize()</code>, <code>assign()</code>, and <code>retract()</code> methods are "heavy" and are meant to be used sparingly.</li>
-<li><code>write()</code> is a "light" method that should be suitable for soft real time applications. </li>
+<li><code>write()</code> is a "light" method that should be suitable for soft real time applications.</li>
 </ul>
 </li>
+</ul>
+<h1>TODO </h1>
+<ul>
+<li>Do data preprocessing in the publisher thread, e.g., with <code>ariles</code> finalize visitor. That would require locking of the data, one option is to keep two copies of the class and swapping them. </li>
 </ul>
 </div></div><!-- PageDoc -->
 </div><!-- contents -->
