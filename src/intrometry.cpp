@@ -14,8 +14,8 @@
 #include <thread_supervisor/supervisor.h>
 
 #include <rclcpp/rclcpp.hpp>
-#include <pal_statistics_msgs/msg/statistics_names.hpp>
-#include <pal_statistics_msgs/msg/statistics_values.hpp>
+#include <plotjuggler_msgs/msg/statistics_names.hpp>
+#include <plotjuggler_msgs/msg/statistics_values.hpp>
 
 
 #include "intrometry/intrometry.h"
@@ -23,8 +23,8 @@
 
 namespace
 {
-    using NamesMsg = pal_statistics_msgs::msg::StatisticsNames;
-    using ValuesMsg = pal_statistics_msgs::msg::StatisticsValues;
+    using NamesMsg = plotjuggler_msgs::msg::StatisticsNames;
+    using ValuesMsg = plotjuggler_msgs::msg::StatisticsValues;
 
     using NamesPublisherPtr = rclcpp::Publisher<NamesMsg>::SharedPtr;
     using ValuesPublisherPtr = rclcpp::Publisher<ValuesMsg>::SharedPtr;

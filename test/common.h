@@ -15,8 +15,8 @@
 #include <gtest/gtest.h>
 
 #include <rclcpp/rclcpp.hpp>
-#include <pal_statistics_msgs/msg/statistics_names.hpp>
-#include <pal_statistics_msgs/msg/statistics_values.hpp>
+#include <plotjuggler_msgs/msg/statistics_names.hpp>
+#include <plotjuggler_msgs/msg/statistics_values.hpp>
 
 #include <thread_supervisor/supervisor.h>
 #include <ariles2/adapters/std_vector.h>
@@ -24,8 +24,8 @@
 
 namespace intrometry_tests
 {
-    using NamesMsg = pal_statistics_msgs::msg::StatisticsNames;
-    using ValuesMsg = pal_statistics_msgs::msg::StatisticsValues;
+    using NamesMsg = plotjuggler_msgs::msg::StatisticsNames;
+    using ValuesMsg = plotjuggler_msgs::msg::StatisticsValues;
 
     using NamesSubscriptionPtr = rclcpp::Subscription<NamesMsg>::SharedPtr;
     using ValuesSubscriptionPtr = rclcpp::Subscription<ValuesMsg>::SharedPtr;
@@ -69,7 +69,7 @@ namespace intrometry_tests
                     [this](const t_Message &msg)
                     {
                         std::stringstream output;
-                        pal_statistics_msgs::msg::to_block_style_yaml(msg, output);
+                        plotjuggler_msgs::msg::to_block_style_yaml(msg, output);
                         std::cerr << output.str();
                         ++counter_;
                     });

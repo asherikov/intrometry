@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package format="2">
     <name>intrometry</name>
-    <version>0.2.0</version>
+    <version>0.3.0</version>
     <description>Inner telemetry collector</description>
     <maintainer email="alexander@sherikov.net">Alexander Sherikov</maintainer>
     <author email="alexander@sherikov.net">Alexander Sherikov</author>
@@ -15,10 +15,10 @@
 
     <build_depend>rclcpp</build_depend>
     <build_depend>thread_supervisor</build_depend>
-    <build_depend>pal_statistics_msgs</build_depend>
+    <build_depend>plotjuggler_msgs</build_depend>
     <exec_depend>rclcpp</exec_depend>
     <exec_depend>thread_supervisor</exec_depend>
-    <exec_depend>pal_statistics_msgs</exec_depend>
+    <exec_depend>plotjuggler_msgs</exec_depend>
 
     <test_depend>gtest</test_depend>
 </package>

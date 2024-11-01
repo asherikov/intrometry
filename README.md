@@ -69,7 +69,7 @@ for(...)
 publisher.retract(debug);
 ```
 
-Example of a published message (`pal_statistics_msgs/msg/statistics_names`)
+Example of a published message (`plotjuggler_msgs/msg/statistics_names`)
 ```
 header:
   stamp:
@@ -105,19 +105,18 @@ Dependencies
 - `cmake`
 - `ariles` (`ariles2_namevalue2_ws`) <https://github.com/asherikov/ariles/tree/pkg_ws_2>
 - `thread_supervisor` <https://github.com/asherikov/thread_supervisor>
-- `rclcpp` / `pal_statistics_msgs`
+- `rclcpp` / `plotjuggler_msgs`
 
 
 Design
 ------
 
 - Publisher creates a dedicated ROS2 node and spawns a publishing thread that
-  takes care of sending data using `pal_statistics_msgs` at a given frequency.
-  Consequently, data can be viewed with `PlotJuggler` <https://plotjuggler.io/>
-  as if it was sent by `pal_statistics` package. Keep in mind that
-  `PlotJuggler` has a flaw that may result in a collision of metric names
-  <https://github.com/facontidavide/PlotJuggler/pull/339> -- `intrometry` makes
-  an effort to avoid this, but it is still possible.
+  takes care of sending data using `plotjuggler_msgs` at a given frequency.
+  Recorded ROS bags can be viewed with `PlotJuggler` <https://plotjuggler.io/>.
+  Keep in mind that `PlotJuggler` has a flaw that may result in a collision of
+  metric names <https://github.com/facontidavide/PlotJuggler/pull/339> --
+  `intrometry` makes an effort to avoid this, but it is still possible.
 
 - `intrometry` tries to interfere as little as possible with the execution of
   other code, in particular this means that:
@@ -127,7 +126,7 @@ Design
       allows to disable it by simply providing an empty id.
 
 - API:
-    - Public API is ROS2 / `pal_statistics_msgs` agnostic, other backends may
+    - Public API is ROS2 / `plotjuggler_msgs` agnostic, other backends may
       be implemented in the future.
     - `initialize()`, `assign()`, and `retract()` methods are "heavy" and are
       meant to be used sparingly.

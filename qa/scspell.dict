@@ -22,6 +22,7 @@ namevalue
 nodiscard
 nolint
 npos
+plotjuggler
 rclcpp
 rosout
 sherikov

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.8)
-project(intrometry VERSION 0.2.0 LANGUAGES CXX)
+project(intrometry VERSION 0.3.0 LANGUAGES CXX)
 
 if(CCWS_CLANG_TIDY)
     set(CMAKE_CXX_CLANG_TIDY "${CCWS_CLANG_TIDY}" CACHE STRING "" FORCE)
@@ -22,7 +22,7 @@ else()
 endif()
 
 find_package(rclcpp REQUIRED)
-find_package(pal_statistics_msgs REQUIRED)
+find_package(plotjuggler_msgs REQUIRED)
 find_package(thread_supervisor REQUIRED)
 find_package(ariles2_namevalue2_ws REQUIRED)
 
@@ -34,7 +34,7 @@ target_link_libraries(${PROJECT_NAME}
     PUBLIC ariles2_visitor_namevalue2
     PRIVATE thread_supervisor::thread_supervisor
     PRIVATE rclcpp::rclcpp
-    PRIVATE pal_statistics_msgs::pal_statistics_msgs__rosidl_typesupport_cpp
+    PRIVATE plotjuggler_msgs::plotjuggler_msgs__rosidl_typesupport_cpp
 )
 target_include_directories(${PROJECT_NAME} PUBLIC
     $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
