@@ -7,7 +7,8 @@
 */
 
 
-#include "intrometry/intrometry.h"
+#include "intrometry/api/intrometry.h"
+#include "intrometry/pjmsg_topic/sink.h"
 
 #include <chrono>
 #include <thread>

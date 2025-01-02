@@ -14,13 +14,13 @@ namespace
     class IntrometryFixture : public ::testing::Test, public intrometry_tests::SubscriberNode
     {
     public:
-        intrometry::Publisher intrometry_publisher_;
+        intrometry::pjmsg_topic::Sink intrometry_sink_;
 
     public:
-        IntrometryFixture()
+        IntrometryFixture() : intrometry_sink_("IntrometryFixture")
         {
             intrometry_tests::SubscriberNode::initialize("intrometryfixture");
-            intrometry_publisher_.initialize("IntrometryFixture");
+            intrometry_sink_.initialize();
         }
     };
 }  // namespace
@@ -29,16 +29,16 @@ namespace
 TEST_F(IntrometryFixture, ArilesDynamic)
 {
     intrometry_tests::ArilesDebug debug;
-    intrometry_publisher_.assign(debug);
+    intrometry_sink_.assign(debug);
 
     for (debug.size_ = 0; debug.size_ < 5; ++debug.size_)
     {
-        intrometry_publisher_.write(debug);
+        intrometry_sink_.write(debug);
         std::this_thread::sleep_for(std::chrono::milliseconds(50));
     }
 
     std::this_thread::sleep_for(std::chrono::milliseconds(500));
-    intrometry_publisher_.retract(debug);
+    intrometry_sink_.retract(debug);
     ASSERT_TRUE(checkReceived());
 }
 
@@ -46,16 +46,16 @@ TEST_F(IntrometryFixture, ArilesDynamic)
 TEST_F(IntrometryFixture, ArilesPersistent)
 {
     intrometry_tests::ArilesDebug debug{};
-    intrometry_publisher_.assign(debug, intrometry::Source::Parameters(/*persistent_structure=*/true));
+    intrometry_sink_.assign(debug, intrometry::Source::Parameters(/*persistent_structure=*/true));
     debug.vec_ = { 3.4, 2.2, 2.1 };
 
     for (std::size_t i = 0; i < 3; ++i)
     {
-        intrometry_publisher_.write(debug);
+        intrometry_sink_.write(debug);
     }
 
     std::this_thread::sleep_for(std::chrono::milliseconds(500));
-    intrometry_publisher_.retract(debug);
+    intrometry_sink_.retract(debug);
     ASSERT_TRUE(checkReceived());
 }
 
@@ -64,15 +64,15 @@ TEST_F(IntrometryFixture, MultipleSources)
 {
     const intrometry_tests::ArilesDebug debug0{};
     const intrometry_tests::ArilesDebug1 debug1{};
-    intrometry_publisher_.assignBatch(intrometry::Source::Parameters(/*persistent_structure=*/true), debug0, debug1);
+    intrometry_sink_.assignBatch(intrometry::Source::Parameters(/*persistent_structure=*/true), debug0, debug1);
 
     for (std::size_t i = 0; i < 3; ++i)
     {
-        intrometry_publisher_.writeBatch(0, debug0, debug1);
+        intrometry_sink_.writeBatch(0, debug0, debug1);
     }
 
     std::this_thread::sleep_for(std::chrono::milliseconds(500));
-    intrometry_publisher_.retractBatch(debug0, debug1);
+    intrometry_sink_.retractBatch(debug0, debug1);
     ASSERT_TRUE(checkReceived());
 }
 

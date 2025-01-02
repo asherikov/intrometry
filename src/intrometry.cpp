@@ -18,7 +18,8 @@
 #include <plotjuggler_msgs/msg/statistics_values.hpp>
 
 
-#include "intrometry/intrometry.h"
+#include "intrometry/api/intrometry.h"
+#include "intrometry/pjmsg_topic/sink.h"
 
 
 namespace
@@ -26,8 +27,8 @@ namespace
     using NamesMsg = plotjuggler_msgs::msg::StatisticsNames;
     using ValuesMsg = plotjuggler_msgs::msg::StatisticsValues;
 
-    using NamesPublisherPtr = rclcpp::Publisher<NamesMsg>::SharedPtr;
-    using ValuesPublisherPtr = rclcpp::Publisher<ValuesMsg>::SharedPtr;
+    using NamesSinkPtr = rclcpp::Publisher<NamesMsg>::SharedPtr;
+    using ValuesSinkPtr = rclcpp::Publisher<ValuesMsg>::SharedPtr;
 
 
     template <typename... t_String>
@@ -127,7 +128,7 @@ namespace intrometry
         }
 
 
-        void publish(const NamesPublisherPtr &names_publisher, const ValuesPublisherPtr &values_publisher)
+        void publish(const NamesSinkPtr &names_sink, const ValuesSinkPtr &values_sink)
         {
             if (mutex_.try_lock())
             {
@@ -135,10 +136,10 @@ namespace intrometry
                 {
                     if (data_->new_names_version_)
                     {
-                        names_publisher->publish(data_->names_);
+                        names_sink->publish(data_->names_);
                         data_->new_names_version_ = false;
                     }
-                    values_publisher->publish(data_->values_);
+                    values_sink->publish(data_->values_);
                     published_ = true;
                 }
                 mutex_.unlock();
@@ -160,8 +161,34 @@ namespace intrometry
     };
 }  // namespace intrometry
 
+namespace intrometry::pjmsg_topic::sink
+{
+    Parameters::Parameters(const std::string &id)
+    {
+        rate_ = 500;
+        id_ = id;
+    }
 
-namespace intrometry
+    Parameters::Parameters(const char *id)
+    {
+        rate_ = 500;
+        id_ = id;
+    }
+
+    Parameters &Parameters::rate(const std::size_t value)
+    {
+        rate_ = value;
+        return (*this);
+    }
+
+    Parameters &Parameters::id(const std::string &value)
+    {
+        id_ = value;
+        return (*this);
+    }
+}  // namespace intrometry::pjmsg_topic::sink
+
+namespace intrometry::pjmsg_topic
 {
     class ROSLogger
     {
@@ -195,202 +222,207 @@ namespace intrometry
     };
 
 
-    class Publisher::Implementation
+    namespace sink
     {
-    protected:
-        using SourceSet = std::unordered_map<std::string, WriterWrapper>;
-
-
-    protected:
-        std::shared_ptr<rclcpp::Node> node_;
-        tut::thread::Supervisor<ROSLogger> thread_supervisor_;
-        uint32_t names_version_;
-
-        SourceSet sources_;
-        std::mutex update_mutex_;
-        std::mutex publish_mutex_;
-
-        NamesPublisherPtr names_publisher_;
-        ValuesPublisherPtr values_publisher_;
-
-    public:
-        Implementation(const std::string &publisher_id, const std::size_t rate)
+        class Implementation
         {
-            std::mt19937 gen((std::random_device())());
-
-            std::uniform_int_distribution<uint32_t> distrib(
-                    std::numeric_limits<uint32_t>::min(), std::numeric_limits<uint32_t>::max());
-            names_version_ = distrib(gen);
-
-            std::string valid_chars = "0123456789abcdefghijklmnopqrstuvwxyz";
+        protected:
+            using SourceSet = std::unordered_map<std::string, WriterWrapper>;
 
 
-            std::string node_id;
-            node_id.resize(publisher_id.size());
-            std::transform(
-                    publisher_id.cbegin(),
-                    publisher_id.cend(),
-                    node_id.begin(),
-                    [valid_chars](unsigned char c) -> unsigned char
-                    {
-                        c = std::tolower(c);
-                        if (valid_chars.find(static_cast<char>(c)) == std::string::npos)
+        protected:
+            std::shared_ptr<rclcpp::Node> node_;
+            tut::thread::Supervisor<ROSLogger> thread_supervisor_;
+            uint32_t names_version_;
+
+            SourceSet sources_;
+            std::mutex update_mutex_;
+            std::mutex publish_mutex_;
+
+            NamesSinkPtr names_sink_;
+            ValuesSinkPtr values_sink_;
+
+        public:
+            Implementation(const std::string &sink_id, const std::size_t rate)
+            {
+                std::mt19937 gen((std::random_device())());
+
+                std::uniform_int_distribution<uint32_t> distrib(
+                        std::numeric_limits<uint32_t>::min(), std::numeric_limits<uint32_t>::max());
+                names_version_ = distrib(gen);
+
+                std::string valid_chars = "0123456789abcdefghijklmnopqrstuvwxyz";
+
+
+                std::string node_id;
+                node_id.resize(sink_id.size());
+                std::transform(
+                        sink_id.cbegin(),
+                        sink_id.cend(),
+                        node_id.begin(),
+                        [valid_chars](unsigned char c) -> unsigned char
                         {
-                            return ('_');
-                        }
-                        return (c);
-                    });
+                            c = std::tolower(c);
+                            if (valid_chars.find(static_cast<char>(c)) == std::string::npos)
+                            {
+                                return ('_');
+                            }
+                            return (c);
+                        });
 
-            const std::size_t first_non_underscore = node_id.find_first_not_of('_');
-            if (first_non_underscore == std::string::npos)
-            {
-                node_id = "";
-            }
-            else
-            {
-                if (first_non_underscore > 0)
+                const std::size_t first_non_underscore = node_id.find_first_not_of('_');
+                if (first_non_underscore == std::string::npos)
                 {
-                    node_id = node_id.substr(first_non_underscore);
-                }
-            }
-
-            std::shuffle(valid_chars.begin(), valid_chars.end(), gen);
-            const std::string random_id = valid_chars.substr(0, 8);
-            const std::string topic_prefix = str_concat("intrometry/", node_id.empty() ? random_id : node_id);
-
-            node_ = std::make_shared<rclcpp::Node>(
-                    str_concat("intrometry_", node_id, "_", random_id),
-                    // try to be stealthy and use minimal resources
-                    rclcpp::NodeOptions()
-                            .enable_topic_statistics(false)
-                            .start_parameter_services(false)
-                            .start_parameter_event_publisher(false)
-                            .append_parameter_override("use_sim_time", false)
-                            .use_clock_thread(false)
-                            .enable_rosout(false));
-            thread_supervisor_.initializeLogger(node_);
-
-            names_publisher_ = node_->create_publisher<NamesMsg>(
-                    str_concat(topic_prefix, "/names"), rclcpp::QoS(/*history_depth=*/20).reliable().transient_local());
-            values_publisher_ = node_->create_publisher<ValuesMsg>(
-                    str_concat(topic_prefix, "/values"),
-                    rclcpp::QoS(/*history_depth=*/20).best_effort().durability_volatile());
-
-
-            thread_supervisor_.add(
-                    tut::thread::Parameters(
-                            tut::thread::Parameters::Restart(/*attempts=*/100, /*sleep_ms=*/50),
-                            tut::thread::Parameters::TerminationPolicy::IGNORE,
-                            tut::thread::Parameters::ExceptionPolicy::CATCH),
-                    &Implementation::spin,
-                    this,
-                    rate);
-        }
-
-        virtual ~Implementation()
-        {
-            thread_supervisor_.stop();
-        }
-
-
-        void spin(const std::size_t rate)
-        {
-            const std::chrono::nanoseconds step(std::nano::den / rate);
-
-            if (step.count() > 0)
-            {
-                std::chrono::time_point<std::chrono::steady_clock> time_threshold = std::chrono::steady_clock::now();
-
-                while (rclcpp::ok() and not thread_supervisor_.isInterrupted())
-                {
-                    if (publish_mutex_.try_lock())
-                    {
-                        for (std::pair<const std::string, WriterWrapper> &source : sources_)
-                        {
-                            source.second.publish(names_publisher_, values_publisher_);
-                        }
-
-                        publish_mutex_.unlock();
-                    }
-                    rclcpp::spin_some(node_);
-
-                    time_threshold += step;
-                    std::this_thread::sleep_until(time_threshold);
-                }
-            }
-            else
-            {
-                thread_supervisor_.log("Incorrect spin rate");
-            }
-            thread_supervisor_.interrupt();
-        }
-
-
-        void assign(const ariles2::DefaultBase &source, const Source::Parameters &parameters)
-        {
-            const std::lock_guard<std::mutex> update_lock(update_mutex_);
-            const std::lock_guard<std::mutex> publish_lock(publish_mutex_);
-
-            sources_.try_emplace(source.arilesDefaultID(), source, parameters.persistent_structure_, names_version_);
-        }
-
-        void retract(const ariles2::DefaultBase &source)
-        {
-            const std::lock_guard<std::mutex> update_lock(update_mutex_);
-            const std::lock_guard<std::mutex> publish_lock(publish_mutex_);
-
-            sources_.erase(source.arilesDefaultID());
-        }
-
-        void write(const ariles2::DefaultBase &source, const rclcpp::Time &timestamp)
-        {
-            if (update_mutex_.try_lock())
-            {
-                const SourceSet::iterator source_it = sources_.find(source.arilesDefaultID());
-
-                if (sources_.end() == source_it)
-                {
-                    thread_supervisor_.log(
-                            "Measurement source handler is not assigned, skipping id: ", source.arilesDefaultID());
+                    node_id = "";
                 }
                 else
                 {
-                    if (0 == timestamp.nanoseconds())
+                    if (first_non_underscore > 0)
                     {
-                        source_it->second.write(source, node_->now(), names_version_);
-                    }
-                    else
-                    {
-                        source_it->second.write(source, timestamp, names_version_);
+                        node_id = node_id.substr(first_non_underscore);
                     }
                 }
 
-                update_mutex_.unlock();
+                std::shuffle(valid_chars.begin(), valid_chars.end(), gen);
+                const std::string random_id = valid_chars.substr(0, 8);
+                const std::string topic_prefix = str_concat("intrometry/", node_id.empty() ? random_id : node_id);
+
+                node_ = std::make_shared<rclcpp::Node>(
+                        str_concat("intrometry_", node_id, "_", random_id),
+                        // try to be stealthy and use minimal resources
+                        rclcpp::NodeOptions()
+                                .enable_topic_statistics(false)
+                                .start_parameter_services(false)
+                                .start_parameter_event_publisher(false)
+                                .append_parameter_override("use_sim_time", false)
+                                .use_clock_thread(false)
+                                .enable_rosout(false));
+                thread_supervisor_.initializeLogger(node_);
+
+                names_sink_ = node_->create_publisher<NamesMsg>(
+                        str_concat(topic_prefix, "/names"),
+                        rclcpp::QoS(/*history_depth=*/20).reliable().transient_local());
+                values_sink_ = node_->create_publisher<ValuesMsg>(
+                        str_concat(topic_prefix, "/values"),
+                        rclcpp::QoS(/*history_depth=*/20).best_effort().durability_volatile());
+
+
+                thread_supervisor_.add(
+                        tut::thread::Parameters(
+                                tut::thread::Parameters::Restart(/*attempts=*/100, /*sleep_ms=*/50),
+                                tut::thread::Parameters::TerminationPolicy::IGNORE,
+                                tut::thread::Parameters::ExceptionPolicy::CATCH),
+                        &Implementation::spin,
+                        this,
+                        rate);
             }
-        }
-    };
-}  // namespace intrometry
+
+            virtual ~Implementation()
+            {
+                thread_supervisor_.stop();
+            }
+
+
+            void spin(const std::size_t rate)
+            {
+                const std::chrono::nanoseconds step(std::nano::den / rate);
+
+                if (step.count() > 0)
+                {
+                    std::chrono::time_point<std::chrono::steady_clock> time_threshold =
+                            std::chrono::steady_clock::now();
+
+                    while (rclcpp::ok() and not thread_supervisor_.isInterrupted())
+                    {
+                        if (publish_mutex_.try_lock())
+                        {
+                            for (std::pair<const std::string, WriterWrapper> &source : sources_)
+                            {
+                                source.second.publish(names_sink_, values_sink_);
+                            }
+
+                            publish_mutex_.unlock();
+                        }
+                        rclcpp::spin_some(node_);
+
+                        time_threshold += step;
+                        std::this_thread::sleep_until(time_threshold);
+                    }
+                }
+                else
+                {
+                    thread_supervisor_.log("Incorrect spin rate");
+                }
+                thread_supervisor_.interrupt();
+            }
+
+
+            void assign(const ariles2::DefaultBase &source, const Source::Parameters &parameters)
+            {
+                const std::lock_guard<std::mutex> update_lock(update_mutex_);
+                const std::lock_guard<std::mutex> publish_lock(publish_mutex_);
+
+                sources_.try_emplace(
+                        source.arilesDefaultID(), source, parameters.persistent_structure_, names_version_);
+            }
+
+            void retract(const ariles2::DefaultBase &source)
+            {
+                const std::lock_guard<std::mutex> update_lock(update_mutex_);
+                const std::lock_guard<std::mutex> publish_lock(publish_mutex_);
+
+                sources_.erase(source.arilesDefaultID());
+            }
+
+            void write(const ariles2::DefaultBase &source, const rclcpp::Time &timestamp)
+            {
+                if (update_mutex_.try_lock())
+                {
+                    const SourceSet::iterator source_it = sources_.find(source.arilesDefaultID());
+
+                    if (sources_.end() == source_it)
+                    {
+                        thread_supervisor_.log(
+                                "Measurement source handler is not assigned, skipping id: ", source.arilesDefaultID());
+                    }
+                    else
+                    {
+                        if (0 == timestamp.nanoseconds())
+                        {
+                            source_it->second.write(source, node_->now(), names_version_);
+                        }
+                        else
+                        {
+                            source_it->second.write(source, timestamp, names_version_);
+                        }
+                    }
+
+                    update_mutex_.unlock();
+                }
+            }
+        };
+    }  // namespace sink
+}  // namespace intrometry::pjmsg_topic
 
 
 
-namespace intrometry
+namespace intrometry::pjmsg_topic
 {
-    Publisher::Publisher() = default;
-    Publisher::~Publisher() = default;
+    Sink::~Sink() = default;
 
 
-    bool Publisher::initialize(const std::string &publisher_id, const Parameters &parameters)
+    bool Sink::initialize()
     {
-        if (not rclcpp::ok() or publisher_id.empty())
+        if (not rclcpp::ok() or parameters_.id_.empty())
         {
             return (false);
         }
-        pimpl_ = std::make_shared<Publisher::Implementation>(publisher_id, parameters.rate_);
+        make_pimpl(parameters_.id_, parameters_.rate_);
         return (true);
     }
 
 
-    void Publisher::assign(const ariles2::DefaultBase &source, const Source::Parameters &parameters)
+    void Sink::assign(const ariles2::DefaultBase &source, const Source::Parameters &parameters)
     {
         if (pimpl_)
         {
@@ -399,7 +431,7 @@ namespace intrometry
     }
 
 
-    void Publisher::retract(const ariles2::DefaultBase &source)
+    void Sink::retract(const ariles2::DefaultBase &source)
     {
         if (pimpl_)
         {
@@ -408,11 +440,11 @@ namespace intrometry
     }
 
 
-    void Publisher::write(const ariles2::DefaultBase &source, const uint64_t timestamp)
+    void Sink::write(const ariles2::DefaultBase &source, const uint64_t timestamp)
     {
         if (pimpl_)
         {
             pimpl_->write(source, rclcpp::Time(static_cast<rcl_time_point_value_t>(timestamp)));
         }
     }
-}  // namespace intrometry
+}  // namespace intrometry::pjmsg_topic

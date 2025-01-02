@@ -11,43 +11,43 @@
 
 namespace
 {
-    class ComboPublisherFixture : public ::testing::Test, public intrometry_tests::SubscriberNode
+    class ComboSinkFixture : public ::testing::Test, public intrometry_tests::SubscriberNode
     {
     public:
-        intrometry::ComboPublisher<intrometry_tests::ArilesDebug> intrometry_publisher_;
+        intrometry::ComboSink<intrometry_tests::ArilesDebug> intrometry_sink_;
 
     public:
-        ComboPublisherFixture()
+        ComboSinkFixture()
         {
-            intrometry_tests::SubscriberNode::initialize("combopublisherfixture");
-            intrometry_publisher_.initialize(
-                    intrometry::Source::Parameters(/*persistent_structure=*/true), "ComboPublisherFixture");
+            intrometry_tests::SubscriberNode::initialize("combosinkfixture");
+            intrometry_sink_.initialize<intrometry::pjmsg_topic::Sink>(
+                    intrometry::Source::Parameters(/*persistent_structure=*/true), "ComboSinkFixture");
         }
     };
 
-    class MultiPublisherFixture : public ::testing::Test
+    class MultiSinkFixture : public ::testing::Test
     {
     public:
-        using MultiPub = intrometry::ComboPublisher<intrometry_tests::ArilesDebug, intrometry_tests::ArilesDebug1>;
+        using MultiPub = intrometry::ComboSink<intrometry_tests::ArilesDebug, intrometry_tests::ArilesDebug1>;
         using MultiPubVec = std::vector<MultiPub>;
     };
 }  // namespace
 
 
-TEST_F(ComboPublisherFixture, Simple)
+TEST_F(ComboSinkFixture, Simple)
 {
-    for (intrometry_publisher_.get<intrometry_tests::ArilesDebug>().size_ = 0;
-         intrometry_publisher_.get<intrometry_tests::ArilesDebug>().size_ < 5;
-         ++intrometry_publisher_.get<intrometry_tests::ArilesDebug>().size_)
+    for (intrometry_sink_.get<intrometry_tests::ArilesDebug>().size_ = 0;
+         intrometry_sink_.get<intrometry_tests::ArilesDebug>().size_ < 5;
+         ++intrometry_sink_.get<intrometry_tests::ArilesDebug>().size_)
     {
-        intrometry_publisher_.write();
+        intrometry_sink_.write();
         std::this_thread::sleep_for(std::chrono::milliseconds(50));
     }
 
     ASSERT_TRUE(checkReceived());
 }
 
-TEST_F(MultiPublisherFixture, Multi)
+TEST_F(MultiSinkFixture, Multi)
 {
     MultiPubVec pub_vector;
     std::array<intrometry_tests::SubscriberNode, 10> sub_vector;
@@ -59,7 +59,8 @@ TEST_F(MultiPublisherFixture, Multi)
         {
             std::stringstream strstream;
             strstream << "test" << i;
-            pub.initialize(intrometry::Source::Parameters(/*persistent_structure=*/true), strstream.str());
+            pub.initialize<intrometry::pjmsg_topic::Sink>(
+                    intrometry::Source::Parameters(/*persistent_structure=*/true), strstream.str());
             ++i;
         }
 

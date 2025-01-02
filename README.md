@@ -58,17 +58,17 @@ class ArilesDebug : public ariles2::DefaultBase
 #include ARILES2_INITIALIZE
 }
 ...
-intrometry::Publisher publisher;
+intrometry::Sink sink;
 ArilesDebug debug;
 ...
-publisher.initialize("my_publisher");
-publisher.assign(debug);
+sink.initialize("my_sink");
+sink.assign(debug);
 ...
 for(...)
 {
-    publisher.write(debug);
+    sink.write(debug);
 }
-publisher.retract(debug);
+sink.retract(debug);
 ```
 
 Example of a published message (`plotjuggler_msgs/msg/statistics_names`)
@@ -113,7 +113,7 @@ Dependencies
 Design
 ------
 
-- Publisher creates a dedicated ROS2 node and spawns a publishing thread that
+- Sink creates a dedicated ROS2 node and spawns a publishing thread that
   takes care of sending data using `plotjuggler_msgs` at a given frequency.
   Recorded ROS bags can be viewed with `PlotJuggler` <https://plotjuggler.io/>.
   Keep in mind that `PlotJuggler` has a flaw that may result in a collision of
@@ -138,6 +138,6 @@ Design
 TODO
 ====
 
-- Do data preprocessing in the publisher thread, e.g., with `ariles` finalize
+- Do data preprocessing in the sink thread, e.g., with `ariles` finalize
   visitor. That would require locking of the data, one option is to keep two
   copies of the class and swapping them.

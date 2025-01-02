@@ -4,44 +4,48 @@
     @copyright 2024 Alexander Sherikov. Licensed under the Apache License,
     Version 2.0. (see LICENSE or http://www.apache.org/licenses/LICENSE-2.0)
 
-    @brief Combo publisher: publisher + data container
+    @brief Combo sink: sink + data container
 */
 
 #pragma once
 
 #include <tuple>
 
-#include "publisher.h"
+#include "sink.h"
 
 
 namespace intrometry
 {
     /**
-     * @brief Combo publisher: publisher + data container
+     * @brief Combo sink: sink + data container
      *
-     * A helper class that contains both a publisher and multiple source
+     * A helper class that contains both a sink and multiple source
      * instances that are automatically assigned to it on initialization.
      *
      * @ingroup API
      */
     template <class... t_Ariles>
-    class ComboPublisher
+    class ComboSink
     {
     public:
-        Publisher publisher_;
+        std::shared_ptr<SinkBase> sink_;
         std::tuple<t_Ariles...> data_;
 
     public:
-        /// Initialize publisher and assign sources.
-        template <class... t_Args>
-        bool initialize(const Source::Parameters &parameters, t_Args &&...args)
+        /// Initialize sink and assign sources.
+        template <class t_Sink, class... t_Args>
+        bool initialize(
+                const Source::Parameters &source_parameters,
+                t_Args &&...args)
         {
-            if (not publisher_.initialize(std::forward<t_Args>(args)...))
+            sink_ = std::make_shared<t_Sink>(std::forward<t_Args>(args)...);
+            if (not sink_->initialize())
             {
                 return (false);
             }
             std::apply(
-                    [this, parameters](auto &&...assign_args) { publisher_.assignBatch(parameters, assign_args...); },
+                    [this, source_parameters](auto &&...assign_args)
+                    { sink_->assignBatch(source_parameters, assign_args...); },
                     data_);
             return (true);
         }
@@ -53,11 +57,11 @@ namespace intrometry
             return (std::get<t_Data>(data_));
         }
 
-        /// Write all sources to publisher
+        /// Write all sources to sink
         void write(const uint64_t timestamp = 0)
         {
             std::apply(
-                    [this, timestamp](auto &&...write_args) { publisher_.writeBatch(timestamp, write_args...); },
+                    [this, timestamp](auto &&...write_args) { sink_->writeBatch(timestamp, write_args...); },
                     data_);
         }
     };

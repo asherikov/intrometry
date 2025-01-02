@@ -4,7 +4,7 @@
     @copyright 2024 Alexander Sherikov. Licensed under the Apache License,
     Version 2.0. (see LICENSE or http://www.apache.org/licenses/LICENSE-2.0)
 
-    @brief Publisher class.
+    @brief Sink class.
 */
 
 #pragma once
@@ -22,52 +22,14 @@ namespace intrometry
      *
      * @ingroup API
      */
-    class Publisher
+    class SinkBase
     {
     public:
-        class Parameters
-        {
-        public:
-            /**
-             * publish rate (system clock),
-             * data written at higher rate is going to overwrite unpublished data
-             */
-            std::size_t rate_;
-
-        public:
-            Parameters()  // NOLINT
-            {
-                rate_ = 500;
-            }
-
-            Parameters &rate(const std::size_t value)
-            {
-                rate_ = value;
-                return (*this);
-            }
-        };
-
-
-    protected:
-        class Implementation;
-
-
-    protected:
-        std::shared_ptr<Implementation> pimpl_;
-
-
-    public:
-        Publisher();
-        ~Publisher();
-
         /**
-         * Initialize publisher.
+         * Initialize sink.
          * @return true on success
          */
-        bool initialize(
-                /// id of the publisher, disables publishing if empty
-                const std::string &publisher_id,
-                const Parameters &parameters = Parameters());
+        virtual bool initialize() = 0;
 
         /**
          * Assign data source (an ariles class) with parameters. Data source is
@@ -77,7 +39,9 @@ namespace intrometry
          *
          * @note Does nothing if initialization failed.
          */
-        void assign(const ariles2::DefaultBase &source, const Source::Parameters &parameters = Source::Parameters());
+        virtual void assign(
+                const ariles2::DefaultBase &source,
+                const Source::Parameters &parameters = Source::Parameters()) = 0;
 
         /**
          * Unassign source.
@@ -86,7 +50,7 @@ namespace intrometry
          * @note Does nothing if initialization failed.
          * @note Does nothing if the source has not been assigned.
          */
-        void retract(const ariles2::DefaultBase &source);
+        virtual void retract(const ariles2::DefaultBase &source) = 0;
 
         /**
          * Write data. Data is copied to internal buffers, and scheduled for
@@ -95,7 +59,7 @@ namespace intrometry
          * @note Does nothing if source is unassigned.
          * @note Does nothing if initialization failed.
          */
-        void write(const ariles2::DefaultBase &source, const uint64_t timestamp = 0);
+        virtual void write(const ariles2::DefaultBase &source, const uint64_t timestamp = 0) = 0;
 
 
         /// Batch assignment
@@ -117,6 +81,30 @@ namespace intrometry
         void writeBatch(const uint64_t timestamp, t_Sources &&...sources)
         {
             ((void)write(std::forward<t_Sources>(sources), timestamp), ...);
+        }
+    };
+
+
+    template <class t_Parameters, class t_Implementation>
+    class SinkPIMPLBase : public SinkBase
+    {
+    public:
+        using Parameters = t_Parameters;
+
+    protected:
+        t_Parameters parameters_;
+        std::shared_ptr<t_Implementation> pimpl_;
+
+    public:
+        SinkPIMPLBase(const t_Parameters &parameters = t_Parameters()) : parameters_(parameters)  // NOLINT
+        {
+        }
+
+    protected:
+        template <class... t_Args>
+        void make_pimpl(t_Args &&...args)
+        {
+            pimpl_ = std::make_shared<t_Implementation>(std::forward<t_Args>(args)...);
         }
     };
 }  // namespace intrometry

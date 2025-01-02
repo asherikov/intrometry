@@ -18,7 +18,7 @@ namespace intrometry
      * @brief Data source (parameters).
      *
      * Currently contains only parameters that can be used when assigning a
-     * bare ariles class to an intrometry publisher.
+     * bare ariles class to an intrometry sink.
      *
      * @ingroup API
      */
