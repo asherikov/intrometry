@@ -1,7 +1,3 @@
-ROOT_DIR=../../
-BUILD_ROOT?=./build
-BUILD_DIR?=${BUILD_ROOT}/${OPTIONS}
-
 APT_INSTALL=sudo apt install -y --no-install-recommends
 PIP_INSTALL=sudo python3 -m pip install
 GEM_INSTALL=sudo gem install
@@ -32,15 +28,7 @@ spell_interactive:
 # https://github.com/myint/scspell
 spell:
 	${FIND_SOURCES} \
-	    | xargs ${SPELL_XARGS_ARG} scspell --use-builtin-base-dict --override-dictionary ./qa/scspell.dict
-
-
-
-# documentation
-#----------------------------------------------
-doxclean:
-	cd doc/gh-pages; git fetch --all; git checkout gh-pages; git pull
-	find ./doc/gh-pages/ -mindepth 1 -not -name "\.git" | xargs rm -Rf
+	    | xargs ${SPELL_XARGS_ARG} scspell --use-builtin-base-dict --override-dictionary ./.utils/qa/scspell.dict
 
 
 .PHONY: build cmake test

@@ -1,2 +1,2 @@
-.include ".make/intrometry.mk"
-.include ".make/common.mk"
+.include ".utils/make/intrometry.mk"
+.include ".utils/make/common.mk"
