@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.8)
-project(intrometry VERSION 0.3.0 LANGUAGES CXX)
+project(intrometry_pjmsg_topic VERSION 1.0.0 LANGUAGES CXX)
 
 if(CCWS_CLANG_TIDY)
     set(CMAKE_CXX_CLANG_TIDY "${CCWS_CLANG_TIDY}" CACHE STRING "" FORCE)
@@ -21,17 +21,19 @@ else()
     endif()
 endif()
 
+find_package(intrometry_api REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(plotjuggler_msgs REQUIRED)
 find_package(thread_supervisor REQUIRED)
-find_package(ariles2_namevalue2_ws REQUIRED)
+find_package(ariles2-namevalue2 REQUIRED)
 
 
 add_library(${PROJECT_NAME} SHARED
-    src/${PROJECT_NAME}.cpp
+    src/intrometry.cpp
 )
 target_link_libraries(${PROJECT_NAME}
-    PUBLIC ariles2_visitor_namevalue2
+    PUBLIC intrometry_api::intrometry_api
+    PRIVATE ariles2_visitor_namevalue2
     PRIVATE thread_supervisor::thread_supervisor
     PRIVATE rclcpp::rclcpp
     PRIVATE plotjuggler_msgs::plotjuggler_msgs__rosidl_typesupport_cpp
@@ -54,7 +56,7 @@ install(TARGETS ${PROJECT_NAME}
     RUNTIME DESTINATION bin
 )
 
-install(DIRECTORY include/${PROJECT_NAME}
+install(DIRECTORY include/intrometry
     DESTINATION include
     FILES_MATCHING PATTERN "*.h"
 )

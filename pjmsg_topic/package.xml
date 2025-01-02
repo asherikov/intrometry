@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package format="2">
-    <name>intrometry</name>
-    <version>0.3.0</version>
+    <name>intrometry_pjmsg_topic</name>
+    <version>1.0.0</version>
     <description>Inner telemetry collector</description>
     <maintainer email="alexander@sherikov.net">Alexander Sherikov</maintainer>
     <author email="alexander@sherikov.net">Alexander Sherikov</author>
@@ -11,14 +11,16 @@
         <build_type>cmake</build_type>
     </export>
 
-    <depend>ariles2_namevalue2_ws</depend>
+    <depend>intrometry_api</depend>
 
     <build_depend>rclcpp</build_depend>
     <build_depend>thread_supervisor</build_depend>
     <build_depend>plotjuggler_msgs</build_depend>
+    <build_depend>ariles2_namevalue2_ws</build_depend>
     <exec_depend>rclcpp</exec_depend>
     <exec_depend>thread_supervisor</exec_depend>
     <exec_depend>plotjuggler_msgs</exec_depend>
+    <exec_depend>ariles2_namevalue2_ws</exec_depend>
 
     <test_depend>gtest</test_depend>
 </package>

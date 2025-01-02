@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<package format="2">
+    <name>intrometry_api</name>
+    <version>1.0.0</version>
+    <description>Inner telemetry collector</description>
+    <maintainer email="alexander@sherikov.net">Alexander Sherikov</maintainer>
+    <author email="alexander@sherikov.net">Alexander Sherikov</author>
+    <license>Apache 2.0</license>
+
+    <export>
+        <build_type>cmake</build_type>
+    </export>
+
+    <depend>ariles2_core_ws</depend>
+</package>
