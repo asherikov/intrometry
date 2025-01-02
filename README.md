@@ -30,6 +30,27 @@ library <https://github.com/asherikov/ariles> instead of macro.
 Doxygen documentation: <https://asherikov.github.io/intrometry/doxygen/group__API.html>
 
 
+Design
+------
+
+- Intrometry consist of multiple modules: one frontend and multiple backends.
+  Frontend defines common API, and backends implement various storage options.
+  Typically application code should depend on a single backend, explicit
+  dependency on the frontend is not needed in this case.
+
+- `intrometry` tries to interfere as little as possible with the execution of
+  other code, in particular this means that:
+    - `intrometry` would rather lose data than block calling thread for more
+      time than is needed for copying it;
+    - `intrometry` would rather lose data than run out of memory;
+    - `intrometry` ignores failures, e.g., due to failed initialization, which
+      allows to disable it by simply providing an empty id.
+
+- Frontend is meant to be agnostic of any possible data storage or transmission
+  dependencies, in particular ROS. Backends may depend on various libraries in
+  order to handle data.
+
+
 Comparison
 ----------
 
@@ -58,7 +79,7 @@ class ArilesDebug : public ariles2::DefaultBase
 #include ARILES2_INITIALIZE
 }
 ...
-intrometry::Sink sink;
+intrometry::pjmsg_topic::Sink sink;
 ArilesDebug debug;
 ...
 sink.initialize("my_sink");
@@ -99,41 +120,64 @@ Key features:
 - automatic generation of variable names and support for various types suchs as
   `Eigen` matrices, stl vectors, maps, etc is provided by `ariles`.
 
+Methods:
+
+- `initialize()`, `assign()`, and `retract()` methods are "heavy" and are meant
+  to be used sparingly.
+- `write()` is a "light" method that should be suitable for soft real time
+  applications.
+
+
+Backends
+--------
+
+### `pjmsg_topic`
+
+Creates a dedicated ROS2 node and spawns a publishing thread that takes care of
+sending data using `plotjuggler_msgs` at a given frequency. Recorded ROS bags
+can be viewed with `PlotJuggler` <https://plotjuggler.io/>. Keep in mind that
+`PlotJuggler` has a flaw that may result in a collision of metric names
+<https://github.com/facontidavide/PlotJuggler/pull/339> -- `intrometry` makes
+an effort to avoid this, but it is still possible.
+
+### `pjmsg_mcap`
+
+Serializes metrics to `plotjuggler_msgs` and writes them directly to `mcap`
+files. All serialization logic and schemas are compiled in, so this backend
+does NOT depend on any ROS components. The resulting files can also be viewed
+by `PlotJuggler`.
+
+
+Using backends with cmake
+-------------------------
+
+```
+find_package(intrometry_pjmsg_mcap REQUIRED)
+target_link_libraries(my_library intrometry::pjmsg_mcap)
+```
+
 
 Dependencies
 ------------
 
+### Frontend
 - `C++17` compatible compiler
 - `cmake`
-- `ariles` (`ariles2_namevalue2_ws`) <https://github.com/asherikov/ariles/tree/pkg_ws_2>
+- `ariles` (`ariles2_core_ws`) <https://github.com/asherikov/ariles/tree/pkg_ws_2>
+
+### Backends
+
+`pjmsg_topic`
+
 - `thread_supervisor` <https://github.com/asherikov/thread_supervisor>
 - `rclcpp` / `plotjuggler_msgs`
+- `ariles` (`ariles2_namevalue2_ws`) <https://github.com/asherikov/ariles/tree/pkg_ws_2>
 
+`pjmsg_mcap`
 
-Design
-------
+- `thread_supervisor` <https://github.com/asherikov/thread_supervisor>
+- `ariles` (`ariles2_namevalue2_ws`) <https://github.com/asherikov/ariles/tree/pkg_ws_2>
 
-- Sink creates a dedicated ROS2 node and spawns a publishing thread that
-  takes care of sending data using `plotjuggler_msgs` at a given frequency.
-  Recorded ROS bags can be viewed with `PlotJuggler` <https://plotjuggler.io/>.
-  Keep in mind that `PlotJuggler` has a flaw that may result in a collision of
-  metric names <https://github.com/facontidavide/PlotJuggler/pull/339> --
-  `intrometry` makes an effort to avoid this, but it is still possible.
-
-- `intrometry` tries to interfere as little as possible with the execution of
-  other code, in particular this means that:
-    - `intrometry` would rather lose data than block calling thread for more
-      time than is needed for copying it;
-    - `intrometry` ignores failures, e.g., due to failed initialization, which
-      allows to disable it by simply providing an empty id.
-
-- API:
-    - Public API is ROS2 / `plotjuggler_msgs` agnostic, other backends may
-      be implemented in the future.
-    - `initialize()`, `assign()`, and `retract()` methods are "heavy" and are
-      meant to be used sparingly.
-    - `write()` is a "light" method that should be suitable for soft real time
-      applications.
 
 TODO
 ====

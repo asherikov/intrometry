@@ -1,9 +1,6 @@
 cmake_minimum_required(VERSION 3.8)
-project(intrometry_pjmsg_topic VERSION 1.0.0 LANGUAGES CXX)
+project(intrometry_pjmsg_mcap VERSION 1.0.0 LANGUAGES CXX)
 
-if(CCWS_CLANG_TIDY)
-    set(CMAKE_CXX_CLANG_TIDY "${CCWS_CLANG_TIDY}" CACHE STRING "" FORCE)
-endif()
 if(CCWS_CXX_FLAGS)
     set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CCWS_CXX_FLAGS}")
     set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${CCWS_LINKER_FLAGS}")
@@ -22,26 +19,32 @@ else()
 endif()
 
 find_package(intrometry_frontend REQUIRED)
-find_package(rclcpp REQUIRED)
-find_package(plotjuggler_msgs REQUIRED)
 find_package(thread_supervisor REQUIRED)
 find_package(ariles2-namevalue2 REQUIRED)
 
+add_subdirectory(src/3rdparty/)
+
+if(CCWS_CLANG_TIDY)
+    set(CMAKE_CXX_CLANG_TIDY "${CCWS_CLANG_TIDY}" CACHE STRING "" FORCE)
+endif()
 
 add_library(${PROJECT_NAME} SHARED
     src/intrometry.cpp
 )
-set_target_properties(${PROJECT_NAME} PROPERTIES EXPORT_NAME pjmsg_topic)
+set_target_properties(${PROJECT_NAME} PROPERTIES EXPORT_NAME pjmsg_mcap)
 target_link_libraries(${PROJECT_NAME}
     PUBLIC intrometry::frontend
     PRIVATE ariles2::namevalue2
     PRIVATE thread_supervisor::thread_supervisor
-    PRIVATE rclcpp::rclcpp
-    PRIVATE plotjuggler_msgs::plotjuggler_msgs__rosidl_typesupport_cpp
+    PRIVATE fastcdr
 )
 target_include_directories(${PROJECT_NAME} PUBLIC
     $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>
+)
+target_include_directories(${PROJECT_NAME}
+    SYSTEM PRIVATE src/3rdparty/mcap/cpp/mcap/include/
+    SYSTEM PRIVATE src/3rdparty/generated/
 )
 set_property(TARGET ${PROJECT_NAME} PROPERTY INTERFACE_${PROJECT_NAME}_MAJOR_VERSION ${PROJECT_VERSION_MAJOR})
 set_property(TARGET ${PROJECT_NAME} APPEND PROPERTY COMPATIBLE_INTERFACE_STRING ${PROJECT_VERSION_MAJOR})
@@ -63,7 +66,8 @@ install(DIRECTORY include/intrometry
 )
 
 
-if(BUILD_TESTING)
+if(NOT DEFINED BUILD_TESTING OR BUILD_TESTING)
+    enable_testing()
     add_subdirectory(test)
 endif()
 

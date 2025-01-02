@@ -33,8 +33,13 @@ jobs:
             - run: make bp_install_build BUILD_PROFILE=reldebug
             - run: make bp_install_build BUILD_PROFILE=scan_build
             - run: make bp_install_build BUILD_PROFILE=static_checks
+            - run: mkdir -p src/.ccws
+            - run: echo "intrometry/pjmsg_mcap/src/3rdparty/" >> src/.ccws/static_checks.exceptions.paths
             - run: make BUILD_PROFILE=static_checks
-            - run: make dep_install PKG=intrometry
+            - run: make dep_install PKG=intrometry_pjmsg_mcap
+            - run: make dep_install PKG=intrometry_pjmsg_topic
             - run: make intrometry BUILD_PROFILE=scan_build
             - run: make intrometry
-            - run: make test PKG=intrometry
+            - run: make test PKG=intrometry_frontend
+            - run: make test PKG=intrometry_pjmsg_mcap
+            - run: make test PKG=intrometry_pjmsg_topic

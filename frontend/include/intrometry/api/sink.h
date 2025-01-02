@@ -25,6 +25,8 @@ namespace intrometry
     class SinkBase
     {
     public:
+        virtual ~SinkBase() = default;
+
         /**
          * Initialize sink.
          * @return true on success

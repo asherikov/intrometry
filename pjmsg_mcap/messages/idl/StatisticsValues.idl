@@ -1,0 +1,13 @@
+#include "Header.idl"
+
+module plotjuggler_msgs {
+  module msg {
+    struct StatisticsValues {
+      std_msgs::msg::Header header;
+
+      sequence<double> values;
+
+      uint32 names_version;
+    };
+  };
+};

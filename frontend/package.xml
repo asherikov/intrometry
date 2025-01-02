@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <package format="2">
-    <name>intrometry_api</name>
+    <name>intrometry_frontend</name>
     <version>1.0.0</version>
     <description>Inner telemetry collector</description>
     <maintainer email="alexander@sherikov.net">Alexander Sherikov</maintainer>

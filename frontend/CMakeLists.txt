@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.8)
-project(intrometry_api VERSION 1.0.0 LANGUAGES CXX)
+project(intrometry_frontend VERSION 1.0.0 LANGUAGES CXX)
 
 if(CCWS_CLANG_TIDY)
     set(CMAKE_CXX_CLANG_TIDY "${CCWS_CLANG_TIDY}" CACHE STRING "" FORCE)
@@ -25,8 +25,9 @@ find_package(ariles2-core REQUIRED)
 
 
 add_library(${PROJECT_NAME} INTERFACE)
+set_target_properties(${PROJECT_NAME} PROPERTIES EXPORT_NAME frontend)
 target_link_libraries(${PROJECT_NAME}
-    INTERFACE ariles2-core
+    INTERFACE ariles2::core
 )
 target_include_directories(${PROJECT_NAME} INTERFACE
     $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
@@ -60,7 +61,7 @@ export(EXPORT ${PROJECT_NAME}
 
 install(EXPORT ${PROJECT_NAME}
     FILE ${PROJECT_NAME}Targets.cmake
-    NAMESPACE ${PROJECT_NAME}::
+    NAMESPACE intrometry::
     DESTINATION share/${PROJECT_NAME}/
 )
 

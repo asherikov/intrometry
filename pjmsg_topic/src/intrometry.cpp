@@ -27,8 +27,8 @@ namespace
     using NamesMsg = plotjuggler_msgs::msg::StatisticsNames;
     using ValuesMsg = plotjuggler_msgs::msg::StatisticsValues;
 
-    using NamesSinkPtr = rclcpp::Publisher<NamesMsg>::SharedPtr;
-    using ValuesSinkPtr = rclcpp::Publisher<ValuesMsg>::SharedPtr;
+    using NamesPublisherPtr = rclcpp::Publisher<NamesMsg>::SharedPtr;
+    using ValuesPublisherPtr = rclcpp::Publisher<ValuesMsg>::SharedPtr;
 
 
     template <typename... t_String>
@@ -41,7 +41,7 @@ namespace
 }  // namespace
 
 
-namespace intrometry
+namespace
 {
     class NameValueContainer : public ariles2::namevalue2::NameValueContainer
     {
@@ -94,10 +94,10 @@ namespace intrometry
             values_.values.resize(size);
         }
     };
-}  // namespace intrometry
+}  // namespace
 
 
-namespace intrometry
+namespace
 {
     class WriterWrapper
     {
@@ -128,7 +128,7 @@ namespace intrometry
         }
 
 
-        void publish(const NamesSinkPtr &names_sink, const ValuesSinkPtr &values_sink)
+        void publish(const NamesPublisherPtr &names_sink, const ValuesPublisherPtr &values_sink)
         {
             if (mutex_.try_lock())
             {
@@ -159,7 +159,7 @@ namespace intrometry
             }
         }
     };
-}  // namespace intrometry
+}  // namespace
 
 namespace intrometry::pjmsg_topic::sink
 {
@@ -239,8 +239,8 @@ namespace intrometry::pjmsg_topic
             std::mutex update_mutex_;
             std::mutex publish_mutex_;
 
-            NamesSinkPtr names_sink_;
-            ValuesSinkPtr values_sink_;
+            NamesPublisherPtr names_publisher_;
+            ValuesPublisherPtr values_publisher_;
 
         public:
             Implementation(const std::string &sink_id, const std::size_t rate)
@@ -299,10 +299,10 @@ namespace intrometry::pjmsg_topic
                                 .enable_rosout(false));
                 thread_supervisor_.initializeLogger(node_);
 
-                names_sink_ = node_->create_publisher<NamesMsg>(
+                names_publisher_ = node_->create_publisher<NamesMsg>(
                         str_concat(topic_prefix, "/names"),
                         rclcpp::QoS(/*history_depth=*/20).reliable().transient_local());
-                values_sink_ = node_->create_publisher<ValuesMsg>(
+                values_publisher_ = node_->create_publisher<ValuesMsg>(
                         str_concat(topic_prefix, "/values"),
                         rclcpp::QoS(/*history_depth=*/20).best_effort().durability_volatile());
 
@@ -338,7 +338,7 @@ namespace intrometry::pjmsg_topic
                         {
                             for (std::pair<const std::string, WriterWrapper> &source : sources_)
                             {
-                                source.second.publish(names_sink_, values_sink_);
+                                source.second.publish(names_publisher_, values_publisher_);
                             }
 
                             publish_mutex_.unlock();

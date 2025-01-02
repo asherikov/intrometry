@@ -1,0 +1,9 @@
+module builtin_interfaces {
+  module msg {
+    struct Time {
+      int32 sec;
+
+      uint32 nanosec;
+    };
+  };
+};

@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <package format="2">
-    <name>intrometry_pjmsg_topic</name>
+    <name>intrometry_pjmsg_mcap</name>
     <version>1.0.0</version>
     <description>Inner telemetry collector</description>
     <maintainer email="alexander@sherikov.net">Alexander Sherikov</maintainer>
@@ -13,13 +13,9 @@
 
     <depend>intrometry_frontend</depend>
 
-    <build_depend>rclcpp</build_depend>
     <build_depend>thread_supervisor</build_depend>
-    <build_depend>plotjuggler_msgs</build_depend>
     <build_depend>ariles2_namevalue2_ws</build_depend>
-    <exec_depend>rclcpp</exec_depend>
     <exec_depend>thread_supervisor</exec_depend>
-    <exec_depend>plotjuggler_msgs</exec_depend>
     <exec_depend>ariles2_namevalue2_ws</exec_depend>
 
     <test_depend>gtest</test_depend>
