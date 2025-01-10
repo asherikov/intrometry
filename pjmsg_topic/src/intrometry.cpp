@@ -6,9 +6,7 @@
     @brief
 */
 
-#include <random>
 #include <unordered_map>
-#include <ratio>
 
 #include <ariles2/visitors/namevalue2.h>
 #include <thread_supervisor/supervisor.h>
@@ -18,7 +16,8 @@
 #include <plotjuggler_msgs/msg/statistics_values.hpp>
 
 
-#include "intrometry/api/intrometry.h"
+#include "intrometry/intrometry.h"
+#include "intrometry/backend/utils.h"
 #include "intrometry/pjmsg_topic/sink.h"
 
 
@@ -29,15 +28,6 @@ namespace
 
     using NamesPublisherPtr = rclcpp::Publisher<NamesMsg>::SharedPtr;
     using ValuesPublisherPtr = rclcpp::Publisher<ValuesMsg>::SharedPtr;
-
-
-    template <typename... t_String>
-    std::string str_concat(t_String &&...strings)
-    {
-        std::string result;
-        (result += ... += strings);
-        return result;
-    }
 }  // namespace
 
 
@@ -245,50 +235,12 @@ namespace intrometry::pjmsg_topic
         public:
             Implementation(const std::string &sink_id, const std::size_t rate)
             {
-                std::mt19937 gen((std::random_device())());
-
-                std::uniform_int_distribution<uint32_t> distrib(
-                        std::numeric_limits<uint32_t>::min(), std::numeric_limits<uint32_t>::max());
-                names_version_ = distrib(gen);
-
-                std::string valid_chars = "0123456789abcdefghijklmnopqrstuvwxyz";
-
-
-                std::string node_id;
-                node_id.resize(sink_id.size());
-                std::transform(
-                        sink_id.cbegin(),
-                        sink_id.cend(),
-                        node_id.begin(),
-                        [valid_chars](unsigned char c) -> unsigned char
-                        {
-                            c = std::tolower(c);
-                            if (valid_chars.find(static_cast<char>(c)) == std::string::npos)
-                            {
-                                return ('_');
-                            }
-                            return (c);
-                        });
-
-                const std::size_t first_non_underscore = node_id.find_first_not_of('_');
-                if (first_non_underscore == std::string::npos)
-                {
-                    node_id = "";
-                }
-                else
-                {
-                    if (first_non_underscore > 0)
-                    {
-                        node_id = node_id.substr(first_non_underscore);
-                    }
-                }
-
-                std::shuffle(valid_chars.begin(), valid_chars.end(), gen);
-                const std::string random_id = valid_chars.substr(0, 8);
-                const std::string topic_prefix = str_concat("intrometry/", node_id.empty() ? random_id : node_id);
+                const std::string node_id = intrometry::backend::normalizeId(sink_id);
+                const std::string random_id = intrometry::backend::getRandomId(8);
+                const std::string topic_prefix = intrometry::backend::str_concat("intrometry/", node_id.empty() ? random_id : node_id);
 
                 node_ = std::make_shared<rclcpp::Node>(
-                        str_concat("intrometry_", node_id, "_", random_id),
+                        intrometry::backend::str_concat("intrometry_", node_id, "_", random_id),
                         // try to be stealthy and use minimal resources
                         rclcpp::NodeOptions()
                                 .enable_topic_statistics(false)
@@ -300,10 +252,10 @@ namespace intrometry::pjmsg_topic
                 thread_supervisor_.initializeLogger(node_);
 
                 names_publisher_ = node_->create_publisher<NamesMsg>(
-                        str_concat(topic_prefix, "/names"),
+                        intrometry::backend::str_concat(topic_prefix, "/names"),
                         rclcpp::QoS(/*history_depth=*/20).reliable().transient_local());
                 values_publisher_ = node_->create_publisher<ValuesMsg>(
-                        str_concat(topic_prefix, "/values"),
+                        intrometry::backend::str_concat(topic_prefix, "/values"),
                         rclcpp::QoS(/*history_depth=*/20).best_effort().durability_volatile());
 
 
@@ -325,12 +277,11 @@ namespace intrometry::pjmsg_topic
 
             void spin(const std::size_t rate)
             {
-                const std::chrono::nanoseconds step(std::nano::den / rate);
+                intrometry::backend::RateTimer timer(rate);
 
-                if (step.count() > 0)
+                if (timer.valid())
                 {
-                    std::chrono::time_point<std::chrono::steady_clock> time_threshold =
-                            std::chrono::steady_clock::now();
+                    timer.start();
 
                     while (rclcpp::ok() and not thread_supervisor_.isInterrupted())
                     {
@@ -345,8 +296,7 @@ namespace intrometry::pjmsg_topic
                         }
                         rclcpp::spin_some(node_);
 
-                        time_threshold += step;
-                        std::this_thread::sleep_until(time_threshold);
+                        timer.step();
                     }
                 }
                 else

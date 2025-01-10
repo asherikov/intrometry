@@ -34,6 +34,7 @@ add_library(${PROJECT_NAME} SHARED
 set_target_properties(${PROJECT_NAME} PROPERTIES EXPORT_NAME pjmsg_topic)
 target_link_libraries(${PROJECT_NAME}
     PUBLIC intrometry::frontend
+    PRIVATE intrometry::backend
     PRIVATE ariles2::namevalue2
     PRIVATE thread_supervisor::thread_supervisor
     PRIVATE rclcpp::rclcpp

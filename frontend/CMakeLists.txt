@@ -36,8 +36,19 @@ target_include_directories(${PROJECT_NAME} INTERFACE
 set_property(TARGET ${PROJECT_NAME} PROPERTY INTERFACE_${PROJECT_NAME}_MAJOR_VERSION ${PROJECT_VERSION_MAJOR})
 set_property(TARGET ${PROJECT_NAME} APPEND PROPERTY COMPATIBLE_INTERFACE_STRING ${PROJECT_VERSION_MAJOR})
 
+
+add_library(intrometry_backend STATIC
+    src/backend.cpp
+)
+set_target_properties(intrometry_backend PROPERTIES EXPORT_NAME backend)
+
+target_link_libraries(intrometry_backend
+    PUBLIC ${PROJECT_NAME}
+)
+
+
 install(
-    TARGETS ${PROJECT_NAME} EXPORT ${PROJECT_NAME}
+    TARGETS ${PROJECT_NAME} intrometry_backend EXPORT ${PROJECT_NAME}
     INCLUDES DESTINATION include
 )
 

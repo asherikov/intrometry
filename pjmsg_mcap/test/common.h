@@ -7,7 +7,7 @@
 */
 
 
-#include "intrometry/api/intrometry.h"
+#include "intrometry/intrometry.h"
 #include "intrometry/pjmsg_mcap/sink.h"
 
 #include <chrono>

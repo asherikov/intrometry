@@ -9,7 +9,7 @@
 
 #pragma once
 
-#include "intrometry/api/sink.h"
+#include "intrometry/sink.h"
 
 
 namespace intrometry::pjmsg_mcap
@@ -41,8 +41,6 @@ namespace intrometry::pjmsg_mcap
 
     /**
      * @brief Publish data.
-     *
-     * @ingroup API
      */
     class Sink : public SinkPIMPLBase<sink::Parameters, sink::Implementation>
     {

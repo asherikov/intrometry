@@ -6,9 +6,7 @@
     @brief
 */
 
-#include <random>
 #include <unordered_map>
-#include <ratio>
 
 #include <ariles2/visitors/namevalue2.h>
 #include <thread_supervisor/supervisor.h>
@@ -23,23 +21,12 @@
 #define MCAP_COMPRESSION_NO_ZSTD
 #include <mcap/writer.hpp>
 
-#include "intrometry/api/intrometry.h"
+#include "intrometry/intrometry.h"
+#include "intrometry/backend/utils.h"
 #include "intrometry/pjmsg_mcap/sink.h"
 
 #include "schema_names.h"
 #include "schema_values.h"
-
-
-namespace
-{
-    template <typename... t_String>
-    std::string str_concat(t_String &&...strings)
-    {
-        std::string result;
-        (result += ... += strings);
-        return result;
-    }
-}  // namespace
 
 
 namespace
@@ -133,7 +120,8 @@ namespace
                 const mcap::Status res = writer_.open(filename, options);
                 if (not res.ok())
                 {
-                    throw std::runtime_error(str_concat("Failed to open ", filename, " for writing: ", res.message));
+                    throw std::runtime_error(intrometry::backend::str_concat(
+                            "Failed to open ", filename, " for writing: ", res.message));
                 }
             }
 
@@ -144,7 +132,7 @@ namespace
                         intrometry_private::pjmsg_mcap::schema::names);
                 writer_.addSchema(schema);
 
-                mcap::Channel channel(str_concat(topic_prefix, "/names"), "ros2msg", schema.id);
+                mcap::Channel channel(intrometry::backend::str_concat(topic_prefix, "/names"), "ros2msg", schema.id);
                 writer_.addChannel(channel);
 
                 mcap_message_names_.channelId = channel.id;
@@ -157,7 +145,7 @@ namespace
                         intrometry_private::pjmsg_mcap::schema::values);
                 writer_.addSchema(schema);
 
-                mcap::Channel channel(str_concat(topic_prefix, "/values"), "ros2msg", schema.id);
+                mcap::Channel channel(intrometry::backend::str_concat(topic_prefix, "/values"), "ros2msg", schema.id);
                 writer_.addChannel(channel);
 
                 mcap_message_values_.channelId = channel.id;
@@ -191,16 +179,14 @@ namespace
                 mcap_message.dataSize = ser.get_serialized_data_length();
             }
 
-            mcap_message.logTime = std::chrono::duration_cast<std::chrono::nanoseconds>(
-                                           std::chrono::system_clock::now().time_since_epoch())
-                                           .count();
+            mcap_message.logTime = intrometry::backend::now();
             mcap_message.publishTime = mcap_message.logTime;
 
 
             const mcap::Status res = writer_.write(mcap_message);
             if (not res.ok())
             {
-                throw std::runtime_error(str_concat("Failed to write a message: ", res.message));
+                throw std::runtime_error(intrometry::backend::str_concat("Failed to write a message: ", res.message));
             }
         }
 
@@ -330,49 +316,13 @@ namespace intrometry::pjmsg_mcap::sink
     public:
         Implementation(const std::string &sink_id, const std::size_t rate)
         {
-            std::mt19937 gen((std::random_device())());
-
-            std::uniform_int_distribution<uint32_t> distrib(
-                    std::numeric_limits<uint32_t>::min(), std::numeric_limits<uint32_t>::max());
-            names_version_ = distrib(gen);
-
-            std::string valid_chars = "0123456789abcdefghijklmnopqrstuvwxyz";
-
-
-            std::string node_id;
-            node_id.resize(sink_id.size());
-            std::transform(
-                    sink_id.cbegin(),
-                    sink_id.cend(),
-                    node_id.begin(),
-                    [valid_chars](unsigned char c) -> unsigned char
-                    {
-                        c = std::tolower(c);
-                        if (valid_chars.find(static_cast<char>(c)) == std::string::npos)
-                        {
-                            return ('_');
-                        }
-                        return (c);
-                    });
-
-            const std::size_t first_non_underscore = node_id.find_first_not_of('_');
-            if (first_non_underscore == std::string::npos)
-            {
-                node_id = "";
-            }
-            else
-            {
-                if (first_non_underscore > 0)
-                {
-                    node_id = node_id.substr(first_non_underscore);
-                }
-            }
-
-            std::shuffle(valid_chars.begin(), valid_chars.end(), gen);
+            const std::string node_id = intrometry::backend::normalizeId(sink_id);
+            const std::string random_id = intrometry::backend::getRandomId(8);
             const std::string id =
-                    node_id.empty() ? valid_chars.substr(0, 8) : str_concat(node_id, valid_chars.substr(0, 8));
-            const std::string topic_prefix = str_concat("/intrometry/", id);
-            const std::string filename = str_concat(id, ".mcap");
+                    node_id.empty() ? random_id : intrometry::backend::str_concat(node_id, "_", random_id);
+            const std::string topic_prefix =
+                    intrometry::backend::str_concat("/intrometry/", node_id.empty() ? random_id : node_id);
+            const std::string filename = intrometry::backend::str_concat(id, ".mcap");
 
 
             mcap_writer_.initialize(filename, topic_prefix);
@@ -395,11 +345,11 @@ namespace intrometry::pjmsg_mcap::sink
 
         void spin(const std::size_t rate)
         {
-            const std::chrono::nanoseconds step(std::nano::den / rate);
+            intrometry::backend::RateTimer timer(rate);
 
-            if (step.count() > 0)
+            if (timer.valid())
             {
-                std::chrono::time_point<std::chrono::steady_clock> time_threshold = std::chrono::steady_clock::now();
+                timer.start();
 
                 while (not thread_supervisor_.isInterrupted())
                 {
@@ -413,8 +363,7 @@ namespace intrometry::pjmsg_mcap::sink
                         write_mutex_.unlock();
                     }
 
-                    time_threshold += step;
-                    std::this_thread::sleep_until(time_threshold);
+                    timer.step();
                 }
             }
             else
@@ -456,12 +405,7 @@ namespace intrometry::pjmsg_mcap::sink
                 {
                     if (0 == timestamp)
                     {
-                        source_it->second.write(
-                                source,
-                                std::chrono::duration_cast<std::chrono::microseconds>(
-                                        std::chrono::system_clock::now().time_since_epoch())
-                                        .count(),
-                                names_version_);
+                        source_it->second.write(source, intrometry::backend::now(), names_version_);
                     }
                     else
                     {
