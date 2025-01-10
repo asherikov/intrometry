@@ -11,6 +11,8 @@
 #include <algorithm>
 #include <ratio>
 #include <thread>
+#include <sstream>
+#include <iomanip>
 
 #include <intrometry/backend/utils.h>
 
@@ -20,7 +22,7 @@ namespace
     namespace intrometry_private::backend
     {
         const std::string valid_chars = "0123456789abcdefghijklmnopqrstuvwxyz";
-    } // namespace intrometry_private::backend
+    }  // namespace intrometry_private::backend
 }  // namespace
 
 
@@ -94,6 +96,20 @@ namespace intrometry::backend
     }
 
 
+    std::string getDateString()
+    {
+        const std::time_t date_now = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+        std::stringstream date_stream;
+        // thread-unsafe
+        date_stream << std::put_time(std::gmtime(&date_now), "%Y%m%d_%H%M%S");  // NOLINT
+
+        return (date_stream.str());
+    }
+}  // namespace intrometry::backend
+
+
+namespace intrometry::backend
+{
     class RateTimer::Implementation
     {
     public:

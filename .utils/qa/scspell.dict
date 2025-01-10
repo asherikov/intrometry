@@ -14,12 +14,14 @@ cppcheck
 defgroup
 eprosima
 fastcdr
+gmtime
 google
 gtest
 https
 ingroup
 intrometry
 intrometryfixture
+iomanip
 killall
 mcap
 msgs
@@ -33,6 +35,7 @@ rclcpp
 rdparty
 rosout
 sherikov
+sstream
 stringstream
 strstream
 yaml

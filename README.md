@@ -148,12 +148,20 @@ does NOT depend on any ROS components. The resulting files can also be viewed
 by `PlotJuggler`.
 
 
-Using backends with cmake
--------------------------
+Using library
+-------------
+
+### cmake
 
 ```
-find_package(intrometry_pjmsg_mcap REQUIRED)
-target_link_libraries(my_library intrometry::pjmsg_mcap)
+find_package(intrometry_<BACKEND> REQUIRED)
+target_link_libraries(my_library intrometry::<BACKEND>)
+```
+
+### C++
+
+```
+#include <intrometry/<BACKEND>/<BACKEND>.h>
 ```
 
 

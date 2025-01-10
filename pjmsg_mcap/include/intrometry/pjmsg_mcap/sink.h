@@ -9,7 +9,9 @@
 
 #pragma once
 
-#include "intrometry/sink.h"
+#include <filesystem>
+
+#include <intrometry/sink.h>
 
 
 namespace intrometry::pjmsg_mcap
@@ -27,12 +29,18 @@ namespace intrometry::pjmsg_mcap
             /// id of the sink, disables publishing if empty
             std::string id_;
 
+
+            /// output directory
+            std::filesystem::path directory_;
+
+
         public:
             Parameters(const std::string &id = "");  // NOLINT
             Parameters(const char *id = "");  // NOLINT
 
             Parameters &rate(const std::size_t value);
             Parameters &id(const std::string &value);
+            Parameters &directory(const std::filesystem::path &value);
         };
 
         class Implementation;

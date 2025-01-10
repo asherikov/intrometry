@@ -25,8 +25,7 @@
 #include "intrometry/backend/utils.h"
 #include "intrometry/pjmsg_mcap/sink.h"
 
-#include "schema_names.h"
-#include "schema_values.h"
+#include "messages.h"
 
 
 namespace
@@ -95,111 +94,109 @@ namespace
 {
     class McapCDRWriter
     {
+    protected:
+        template <class t_Message>
+        class Channel
+        {
+        protected:
+            mcap::Message message_;
+            eprosima::fastcdr::CdrSizeCalculator cdr_size_calculator_;
+
+        protected:
+            uint32_t getSize(const t_Message &message)
+            {
+                size_t current_alignment{ 0 };
+                return (cdr_size_calculator_.calculate_serialized_size(message, current_alignment)
+                        + 4u /*encapsulation*/);
+            }
+
+        public:
+            Channel() : cdr_size_calculator_(eprosima::fastcdr::CdrVersion::XCDRv1)
+            {
+            }
+
+            void initialize(mcap::McapWriter &writer, const std::string_view &msg_topic)
+            {
+                mcap::Schema schema(
+                        intrometry_private::pjmsg_mcap::Message<t_Message>::type,
+                        "ros2msg",
+                        intrometry_private::pjmsg_mcap::Message<t_Message>::schema);
+                writer.addSchema(schema);
+
+                mcap::Channel channel(msg_topic, "ros2msg", schema.id);
+                writer.addChannel(channel);
+
+                message_.channelId = channel.id;
+            }
+
+            void write(mcap::McapWriter &writer, std::vector<std::byte> &buffer, const t_Message &message)
+            {
+                buffer.resize(getSize(message));
+                message_.data = buffer.data();
+
+                {
+                    eprosima::fastcdr::FastBuffer cdr_buffer(
+                            reinterpret_cast<char *>(buffer.data()), buffer.size());  // NOLINT
+                    eprosima::fastcdr::Cdr ser(
+                            cdr_buffer, eprosima::fastcdr::Cdr::DEFAULT_ENDIAN, eprosima::fastcdr::CdrVersion::XCDRv1);
+                    ser.set_encoding_flag(eprosima::fastcdr::EncodingAlgorithmFlag::PLAIN_CDR);
+
+                    ser.serialize_encapsulation();
+                    ser << message;
+                    ser.set_dds_cdr_options({ 0, 0 });
+
+                    message_.dataSize = ser.get_serialized_data_length();
+                }
+
+                message_.logTime = intrometry::backend::now();
+                message_.publishTime = message_.logTime;
+
+
+                const mcap::Status res = writer.write(message_);
+                if (not res.ok())
+                {
+                    throw std::runtime_error(
+                            intrometry::backend::str_concat("Failed to write a message: ", res.message));
+                }
+            }
+        };
+
     public:
-        mcap::Message mcap_message_names_;
-        mcap::Message mcap_message_values_;
+        std::tuple<Channel<plotjuggler_msgs::msg::StatisticsNames>, Channel<plotjuggler_msgs::msg::StatisticsValues>>
+                channels_;
 
         std::vector<std::byte> buffer_;
-        eprosima::fastcdr::CdrSizeCalculator cdr_size_calculator_;
         mcap::McapWriter writer_;
 
     public:
-        McapCDRWriter() : cdr_size_calculator_(eprosima::fastcdr::CdrVersion::XCDRv1)
-        {
-        }
-
         ~McapCDRWriter()
         {
             writer_.close();
         }
 
-        void initialize(const std::string &filename, const std::string &topic_prefix)  // NOLINT
+        void initialize(const std::filesystem::path &filename, const std::string &topic_prefix)
         {
             {
                 const mcap::McapWriterOptions options = mcap::McapWriterOptions("ros2msg");
-                const mcap::Status res = writer_.open(filename, options);
+                const mcap::Status res = writer_.open(filename.native(), options);
                 if (not res.ok())
                 {
                     throw std::runtime_error(intrometry::backend::str_concat(
-                            "Failed to open ", filename, " for writing: ", res.message));
+                            "Failed to open ", filename.native(), " for writing: ", res.message));
                 }
             }
 
-            {
-                mcap::Schema schema(
-                        "plotjuggler_msgs/msg/StatisticsNames",
-                        "ros2msg",
-                        intrometry_private::pjmsg_mcap::schema::names);
-                writer_.addSchema(schema);
+            std::get<Channel<plotjuggler_msgs::msg::StatisticsNames>>(channels_).initialize(
+                    writer_, intrometry::backend::str_concat(topic_prefix, "/names"));
 
-                mcap::Channel channel(intrometry::backend::str_concat(topic_prefix, "/names"), "ros2msg", schema.id);
-                writer_.addChannel(channel);
-
-                mcap_message_names_.channelId = channel.id;
-            }
-
-            {
-                mcap::Schema schema(
-                        "plotjuggler_msgs/msg/StatisticsValues",
-                        "ros2msg",
-                        intrometry_private::pjmsg_mcap::schema::values);
-                writer_.addSchema(schema);
-
-                mcap::Channel channel(intrometry::backend::str_concat(topic_prefix, "/values"), "ros2msg", schema.id);
-                writer_.addChannel(channel);
-
-                mcap_message_values_.channelId = channel.id;
-            }
+            std::get<Channel<plotjuggler_msgs::msg::StatisticsValues>>(channels_).initialize(
+                    writer_, intrometry::backend::str_concat(topic_prefix, "/values"));
         }
 
         template <class t_Message>
-        uint32_t getSize(const t_Message &message)
+        void write(const t_Message &message)
         {
-            size_t current_alignment{ 0 };
-            return (cdr_size_calculator_.calculate_serialized_size(message, current_alignment) + 4u /*encapsulation*/);
-        }
-
-        template <class t_Message>
-        void write(mcap::Message &mcap_message, const t_Message &message)
-        {
-            buffer_.resize(getSize(message));
-            mcap_message.data = buffer_.data();
-
-            {
-                eprosima::fastcdr::FastBuffer cdr_buffer(
-                        reinterpret_cast<char *>(buffer_.data()), buffer_.size());  // NOLINT
-                eprosima::fastcdr::Cdr ser(
-                        cdr_buffer, eprosima::fastcdr::Cdr::DEFAULT_ENDIAN, eprosima::fastcdr::CdrVersion::XCDRv1);
-                ser.set_encoding_flag(eprosima::fastcdr::EncodingAlgorithmFlag::PLAIN_CDR);
-
-                ser.serialize_encapsulation();
-                ser << message;
-                ser.set_dds_cdr_options({ 0, 0 });
-
-                mcap_message.dataSize = ser.get_serialized_data_length();
-            }
-
-            mcap_message.logTime = intrometry::backend::now();
-            mcap_message.publishTime = mcap_message.logTime;
-
-
-            const mcap::Status res = writer_.write(mcap_message);
-            if (not res.ok())
-            {
-                throw std::runtime_error(intrometry::backend::str_concat("Failed to write a message: ", res.message));
-            }
-        }
-
-        template <class t_Message>
-        void writeValues(const t_Message &message)
-        {
-            write(mcap_message_values_, message);
-        }
-
-        template <class t_Message>
-        void writeNames(const t_Message &message)
-        {
-            write(mcap_message_names_, message);
+            std::get<Channel<t_Message>>(channels_).write(writer_, buffer_, message);
         }
     };
 }  // namespace
@@ -241,11 +238,11 @@ namespace
                 {
                     if (data_->new_names_version_)
                     {
-                        mcap_writer.writeNames(data_->names_);
+                        mcap_writer.write(data_->names_);
                         data_->new_names_version_ = false;
                     }
 
-                    mcap_writer.writeValues(data_->values_);
+                    mcap_writer.write(data_->values_);
                     serialized_ = true;
                 }
                 mutex_.unlock();
@@ -292,6 +289,12 @@ namespace intrometry::pjmsg_mcap::sink
         id_ = value;
         return (*this);
     }
+
+    Parameters &Parameters::directory(const std::filesystem::path &value)
+    {
+        directory_ = value;
+        return (*this);
+    }
 }  // namespace intrometry::pjmsg_mcap::sink
 
 namespace intrometry::pjmsg_mcap::sink
@@ -314,15 +317,22 @@ namespace intrometry::pjmsg_mcap::sink
         McapCDRWriter mcap_writer_;
 
     public:
-        Implementation(const std::string &sink_id, const std::size_t rate)
+        Implementation(const std::filesystem::path &directory, const std::string &sink_id, const std::size_t rate)
         {
             const std::string node_id = intrometry::backend::normalizeId(sink_id);
             const std::string random_id = intrometry::backend::getRandomId(8);
-            const std::string id =
-                    node_id.empty() ? random_id : intrometry::backend::str_concat(node_id, "_", random_id);
             const std::string topic_prefix =
                     intrometry::backend::str_concat("/intrometry/", node_id.empty() ? random_id : node_id);
-            const std::string filename = intrometry::backend::str_concat(id, ".mcap");
+
+            std::filesystem::create_directories(directory);
+            const std::filesystem::path filename = directory
+                                                   / intrometry::backend::str_concat(
+                                                           node_id,
+                                                           node_id.empty() ? "" : "_",
+                                                           random_id,
+                                                           "_",
+                                                           intrometry::backend::getDateString(),
+                                                           ".mcap");
 
 
             mcap_writer_.initialize(filename, topic_prefix);
@@ -431,7 +441,7 @@ namespace intrometry::pjmsg_mcap
         {
             return (false);
         }
-        make_pimpl(parameters_.id_, parameters_.rate_);
+        make_pimpl(parameters_.directory_, parameters_.id_, parameters_.rate_);
         return (true);
     }
 

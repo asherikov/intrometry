@@ -9,7 +9,7 @@
 
 #pragma once
 
-#include "intrometry/sink.h"
+#include <intrometry/sink.h>
 
 
 namespace intrometry::pjmsg_topic

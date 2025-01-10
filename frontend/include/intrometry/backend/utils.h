@@ -26,6 +26,7 @@ namespace intrometry::backend
 
     std::string getRandomId(const std::size_t length);
     std::string normalizeId(const std::string &input_id);
+    std::string getDateString();
 
 
     class RateTimer

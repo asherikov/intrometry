@@ -7,8 +7,7 @@
 */
 
 
-#include "intrometry/intrometry.h"
-#include "intrometry/pjmsg_mcap/sink.h"
+#include "intrometry/pjmsg_mcap/pjmsg_mcap.h"
 
 #include <chrono>
 #include <thread>
