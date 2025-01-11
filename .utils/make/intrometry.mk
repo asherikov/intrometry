@@ -23,6 +23,7 @@ update_mcap:
 		-not -wholename "${MCAP_DIR}/cpp" \
 		-not -wholename "${MCAP_DIR}" \
 		| xargs rm -rf
+	cp pjmsg_mcap/src/3rdparty/mcap_visibility.hpp ${MCAP_DIR}/cpp/mcap/include/mcap/visibility.hpp
 
 update_fastcdr:
 	-git remote add fastcdr https://github.com/eProsima/Fast-CDR.git --no-tags

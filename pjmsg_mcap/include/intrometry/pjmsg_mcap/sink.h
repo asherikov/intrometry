@@ -12,13 +12,14 @@
 #include <filesystem>
 
 #include <intrometry/sink.h>
+#include <intrometry/backend/utils.h>
 
 
 namespace intrometry::pjmsg_mcap
 {
     namespace sink
     {
-        class Parameters
+        class INTROMETRY_PUBLIC Parameters
         {
         public:
             /**
@@ -50,7 +51,7 @@ namespace intrometry::pjmsg_mcap
     /**
      * @brief Publish data.
      */
-    class Sink : public SinkPIMPLBase<sink::Parameters, sink::Implementation>
+    class INTROMETRY_PUBLIC Sink : public SinkPIMPLBase<sink::Parameters, sink::Implementation>
     {
     public:
         using SinkPIMPLBase::SinkPIMPLBase;

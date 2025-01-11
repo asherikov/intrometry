@@ -28,7 +28,7 @@ namespace
 
 namespace intrometry::backend
 {
-    uint64_t now()
+    INTROMETRY_HIDDEN uint64_t now()
     {
         return (std::chrono::duration_cast<std::chrono::nanoseconds>(
                         std::chrono::system_clock::now().time_since_epoch())
@@ -36,7 +36,7 @@ namespace intrometry::backend
     }
 
 
-    uint32_t getRandomUInt32()
+    INTROMETRY_HIDDEN uint32_t getRandomUInt32()
     {
         std::mt19937 gen((std::random_device())());
 
@@ -47,7 +47,7 @@ namespace intrometry::backend
     }
 
 
-    std::string getRandomId(const std::size_t length)
+    INTROMETRY_HIDDEN std::string getRandomId(const std::size_t length)
     {
         std::mt19937 gen((std::random_device())());
 
@@ -61,7 +61,7 @@ namespace intrometry::backend
     }
 
 
-    std::string normalizeId(const std::string &input_id)
+    INTROMETRY_HIDDEN std::string normalizeId(const std::string &input_id)
     {
         std::string result;
         result.resize(input_id.size());
@@ -96,7 +96,7 @@ namespace intrometry::backend
     }
 
 
-    std::string getDateString()
+    INTROMETRY_HIDDEN std::string getDateString()
     {
         const std::time_t date_now = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
         std::stringstream date_stream;

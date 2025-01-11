@@ -18,9 +18,14 @@ else()
     endif()
 endif()
 
+set(CMAKE_CXX_VISIBILITY_PRESET hidden)
+set(CMAKE_VISIBILITY_INLINES_HIDDEN hidden)
+
+
 find_package(intrometry_frontend REQUIRED)
 find_package(thread_supervisor REQUIRED)
 find_package(ariles2-namevalue2 REQUIRED)
+
 
 add_subdirectory(src/3rdparty/)
 
@@ -28,10 +33,12 @@ if(CCWS_CLANG_TIDY)
     set(CMAKE_CXX_CLANG_TIDY "${CCWS_CLANG_TIDY}" CACHE STRING "" FORCE)
 endif()
 
+
 add_library(${PROJECT_NAME} SHARED
     src/intrometry.cpp
 )
 set_target_properties(${PROJECT_NAME} PROPERTIES EXPORT_NAME pjmsg_mcap)
+#target_link_options(${PROJECT_NAME} PRIVATE "-Wl,--version-script=${CMAKE_CURRENT_LIST_DIR}/linker_version_script.map")
 target_link_libraries(${PROJECT_NAME}
     PUBLIC intrometry::frontend
     PRIVATE intrometry::backend

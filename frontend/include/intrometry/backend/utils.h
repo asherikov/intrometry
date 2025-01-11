@@ -11,6 +11,10 @@
 
 #include <memory>
 
+#define INTROMETRY_PUBLIC __attribute__((visibility("default")))
+#define INTROMETRY_HIDDEN __attribute__((visibility("hidden")))
+
+
 namespace intrometry::backend
 {
     template <typename... t_String>
@@ -29,7 +33,7 @@ namespace intrometry::backend
     std::string getDateString();
 
 
-    class RateTimer
+    class INTROMETRY_HIDDEN RateTimer
     {
     protected:
         class Implementation;

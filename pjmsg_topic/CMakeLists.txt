@@ -21,6 +21,10 @@ else()
     endif()
 endif()
 
+set(CMAKE_CXX_VISIBILITY_PRESET hidden)
+set(CMAKE_VISIBILITY_INLINES_HIDDEN hidden)
+
+
 find_package(intrometry_frontend REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(plotjuggler_msgs REQUIRED)
