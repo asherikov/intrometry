@@ -6,27 +6,26 @@
     @brief
 */
 
-#include "common.h"
+#include "pjmsg_mcap_common.h"
 
 
 namespace
 {
-    class IntrometryFixture : public ::testing::Test, public intrometry_tests::SubscriberNode
+    class PjmsgMcapIntrometryFixture : public ::testing::Test
     {
     public:
-        intrometry::pjmsg_topic::Sink intrometry_sink_;
+        intrometry::pjmsg_mcap::Sink intrometry_sink_;
 
     public:
-        IntrometryFixture() : intrometry_sink_("IntrometryFixture")
+        PjmsgMcapIntrometryFixture() : intrometry_sink_("IntrometryFixture")
         {
-            intrometry_tests::SubscriberNode::initialize("intrometryfixture");
             intrometry_sink_.initialize();
         }
     };
 }  // namespace
 
 
-TEST_F(IntrometryFixture, ArilesDynamic)
+TEST_F(PjmsgMcapIntrometryFixture, ArilesDynamic)
 {
     intrometry_tests::ArilesDebug debug;
     intrometry_sink_.assign(debug);
@@ -39,11 +38,11 @@ TEST_F(IntrometryFixture, ArilesDynamic)
 
     std::this_thread::sleep_for(std::chrono::milliseconds(500));
     intrometry_sink_.retract(debug);
-    ASSERT_TRUE(checkReceived());
+    ASSERT_TRUE(true);
 }
 
 
-TEST_F(IntrometryFixture, ArilesPersistent)
+TEST_F(PjmsgMcapIntrometryFixture, ArilesPersistent)
 {
     intrometry_tests::ArilesDebug debug{};
     intrometry_sink_.assign(debug, intrometry::Source::Parameters(/*persistent_structure=*/true));
@@ -52,15 +51,16 @@ TEST_F(IntrometryFixture, ArilesPersistent)
     for (std::size_t i = 0; i < 3; ++i)
     {
         intrometry_sink_.write(debug);
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
     }
 
     std::this_thread::sleep_for(std::chrono::milliseconds(500));
     intrometry_sink_.retract(debug);
-    ASSERT_TRUE(checkReceived());
+    ASSERT_TRUE(true);
 }
 
 
-TEST_F(IntrometryFixture, MultipleSources)
+TEST_F(PjmsgMcapIntrometryFixture, MultipleSources)
 {
     const intrometry_tests::ArilesDebug debug0{};
     const intrometry_tests::ArilesDebug1 debug1{};
@@ -69,18 +69,18 @@ TEST_F(IntrometryFixture, MultipleSources)
     for (std::size_t i = 0; i < 3; ++i)
     {
         intrometry_sink_.writeBatch(0, debug0, debug1);
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
     }
 
     std::this_thread::sleep_for(std::chrono::milliseconds(500));
     intrometry_sink_.retractBatch(debug0, debug1);
-    ASSERT_TRUE(checkReceived());
+    ASSERT_TRUE(true);
 }
 
 
 
 int main(int argc, char **argv)
 {
-    rclcpp::init(argc, argv);
     testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
 }

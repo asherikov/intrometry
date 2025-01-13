@@ -6,18 +6,18 @@
     @brief
 */
 
-#include "common.h"
+#include "pjmsg_topic_common.h"
 
 
 namespace
 {
-    class ComboSinkFixture : public ::testing::Test, public intrometry_tests::SubscriberNode
+    class PjmsgTopicComboSinkFixture : public ::testing::Test, public intrometry_tests::SubscriberNode
     {
     public:
         intrometry::ComboSink<intrometry_tests::ArilesDebug> intrometry_sink_;
 
     public:
-        ComboSinkFixture()
+        PjmsgTopicComboSinkFixture()
         {
             intrometry_tests::SubscriberNode::initialize("combosinkfixture");
             intrometry_sink_.initialize<intrometry::pjmsg_topic::Sink>(
@@ -25,7 +25,7 @@ namespace
         }
     };
 
-    class MultiSinkFixture : public ::testing::Test
+    class PjmsgTopicMultiSinkFixture : public ::testing::Test
     {
     public:
         using MultiPub = intrometry::ComboSink<intrometry_tests::ArilesDebug, intrometry_tests::ArilesDebug1>;
@@ -34,7 +34,7 @@ namespace
 }  // namespace
 
 
-TEST_F(ComboSinkFixture, Simple)
+TEST_F(PjmsgTopicComboSinkFixture, Simple)
 {
     for (intrometry_sink_.get<intrometry_tests::ArilesDebug>().size_ = 0;
          intrometry_sink_.get<intrometry_tests::ArilesDebug>().size_ < 5;
@@ -47,7 +47,7 @@ TEST_F(ComboSinkFixture, Simple)
     ASSERT_TRUE(checkReceived());
 }
 
-TEST_F(MultiSinkFixture, Multi)
+TEST_F(PjmsgTopicMultiSinkFixture, Multi)
 {
     MultiPubVec pub_vector;
     std::array<intrometry_tests::SubscriberNode, 10> sub_vector;

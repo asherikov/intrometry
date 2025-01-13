@@ -324,7 +324,10 @@ namespace intrometry::pjmsg_mcap::sink
             const std::string topic_prefix =
                     intrometry::backend::str_concat("/intrometry/", node_id.empty() ? random_id : node_id);
 
-            std::filesystem::create_directories(directory);
+            if (not directory.empty())
+            {
+                std::filesystem::create_directories(directory);
+            }
             const std::filesystem::path filename = directory
                                                    / intrometry::backend::str_concat(
                                                            node_id,
@@ -333,7 +336,6 @@ namespace intrometry::pjmsg_mcap::sink
                                                            "_",
                                                            intrometry::backend::getDateString(),
                                                            ".mcap");
-
 
             mcap_writer_.initialize(filename, topic_prefix);
 

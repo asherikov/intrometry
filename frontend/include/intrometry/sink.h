@@ -22,10 +22,10 @@ namespace intrometry
      *
      * @ingroup API
      */
-    class SinkBase
+    class Sink
     {
     public:
-        virtual ~SinkBase() = default;
+        virtual ~Sink() = default;
 
         /**
          * Initialize sink.
@@ -88,7 +88,7 @@ namespace intrometry
 
 
     template <class t_Parameters, class t_Implementation>
-    class SinkPIMPLBase : public SinkBase
+    class SinkPIMPLBase : public Sink
     {
     public:
         using Parameters = t_Parameters;

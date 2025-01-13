@@ -21,6 +21,4 @@
     <exec_depend>thread_supervisor</exec_depend>
     <exec_depend>plotjuggler_msgs</exec_depend>
     <exec_depend>ariles2_namevalue2_ws</exec_depend>
-
-    <test_depend>gtest</test_depend>
 </package>

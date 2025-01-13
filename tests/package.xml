@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<package format="2">
+    <name>intrometry_tests</name>
+    <version>1.0.0</version>
+    <description>Intrometry tests</description>
+    <maintainer email="alexander@sherikov.net">Alexander Sherikov</maintainer>
+    <author email="alexander@sherikov.net">Alexander Sherikov</author>
+    <license>Apache 2.0</license>
+
+    <export>
+        <build_type>cmake</build_type>
+    </export>
+
+    <depend>thread_supervisor</depend>
+    <depend>intrometry_pjmsg_mcap</depend>
+    <depend>intrometry_pjmsg_topic</depend>
+
+    <test_depend>gtest</test_depend>
+</package>

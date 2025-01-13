@@ -161,7 +161,7 @@ target_link_libraries(my_library intrometry::<BACKEND>)
 ### C++
 
 ```
-#include <intrometry/<BACKEND>/<BACKEND>.h>
+#include <intrometry/<BACKEND>/all.h>
 ```
 
 

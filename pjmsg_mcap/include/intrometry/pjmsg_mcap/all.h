@@ -8,4 +8,4 @@
 #pragma once
 
 #include <intrometry/intrometry.h>
-#include "sink.h"
+#include <intrometry/pjmsg_mcap/sink.h>

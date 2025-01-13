@@ -74,12 +74,6 @@ install(DIRECTORY include/intrometry
 )
 
 
-if(NOT DEFINED BUILD_TESTING OR BUILD_TESTING)
-    enable_testing()
-    add_subdirectory(test)
-endif()
-
-
 # ---
 # cmake package stuff
 export(EXPORT ${PROJECT_NAME}
@@ -106,7 +100,8 @@ file(
     "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
     "include(\"\${CMAKE_CURRENT_LIST_DIR}/${PROJECT_NAME}Targets.cmake\")\n"
     "include(CMakeFindDependencyMacro)\n"
-    "find_dependency(ariles2_namevalue2_ws)"
+    "find_dependency(ariles2_namevalue2_ws)\n"
+    "find_dependency(intrometry_frontend)"
 )
 
 install(

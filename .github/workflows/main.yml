@@ -40,6 +40,4 @@ jobs:
             - run: make dep_install PKG=intrometry_pjmsg_topic
             - run: make intrometry BUILD_PROFILE=scan_build
             - run: make intrometry
-            - run: make test PKG=intrometry_frontend
-            - run: make test PKG=intrometry_pjmsg_mcap
-            - run: make test PKG=intrometry_pjmsg_topic
+            - run: make test PKG=intrometry_tests

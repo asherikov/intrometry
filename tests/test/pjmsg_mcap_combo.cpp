@@ -6,25 +6,25 @@
     @brief
 */
 
-#include "common.h"
+#include "pjmsg_mcap_common.h"
 
 
 namespace
 {
-    class ComboSinkFixture : public ::testing::Test
+    class PjmsgMcapComboSinkFixture : public ::testing::Test
     {
     public:
         intrometry::ComboSink<intrometry_tests::ArilesDebug> intrometry_sink_;
 
     public:
-        ComboSinkFixture()
+        PjmsgMcapComboSinkFixture()
         {
             intrometry_sink_.initialize<intrometry::pjmsg_mcap::Sink>(
                     intrometry::Source::Parameters(/*persistent_structure=*/true), "ComboSinkFixture");
         }
     };
 
-    class MultiSinkFixture : public ::testing::Test
+    class PjmsgMcapMultiSinkFixture : public ::testing::Test
     {
     public:
         using MultiPub = intrometry::ComboSink<intrometry_tests::ArilesDebug, intrometry_tests::ArilesDebug1>;
@@ -33,7 +33,7 @@ namespace
 }  // namespace
 
 
-TEST_F(ComboSinkFixture, Simple)
+TEST_F(PjmsgMcapComboSinkFixture, Simple)
 {
     for (intrometry_sink_.get<intrometry_tests::ArilesDebug>().size_ = 0;
          intrometry_sink_.get<intrometry_tests::ArilesDebug>().size_ < 5;
@@ -46,7 +46,7 @@ TEST_F(ComboSinkFixture, Simple)
     ASSERT_TRUE(true);
 }
 
-TEST_F(MultiSinkFixture, Multi)
+TEST_F(PjmsgMcapMultiSinkFixture, Multi)
 {
     MultiPubVec pub_vector;
 

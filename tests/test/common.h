@@ -6,8 +6,8 @@
     @brief
 */
 
+#pragma once
 
-#include "intrometry/pjmsg_mcap/pjmsg_mcap.h"
 
 #include <chrono>
 #include <thread>

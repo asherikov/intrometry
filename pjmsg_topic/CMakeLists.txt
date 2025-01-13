@@ -68,11 +68,6 @@ install(DIRECTORY include/intrometry
 )
 
 
-if(BUILD_TESTING)
-    add_subdirectory(test)
-endif()
-
-
 # ---
 # cmake package stuff
 export(EXPORT ${PROJECT_NAME}

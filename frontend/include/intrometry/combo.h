@@ -28,7 +28,7 @@ namespace intrometry
     class ComboSink
     {
     public:
-        std::shared_ptr<SinkBase> sink_;
+        std::shared_ptr<Sink> sink_;
         std::tuple<t_Ariles...> data_;
 
     public:
