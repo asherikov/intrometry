@@ -13,6 +13,7 @@
 #include <mutex>
 #include <unordered_map>
 #include <functional>
+#include <typeinfo>
 
 #include <ariles2/ariles.h>
 
@@ -59,19 +60,37 @@ namespace intrometry::backend
     class INTROMETRY_HIDDEN SourceContainer
     {
     protected:
-        using SourceSet = std::unordered_map<std::string, t_Value>;
+        // passthrough hasher
+        struct Hasher
+        {
+            std::size_t operator()(const std::size_t key) const
+            {
+                return key;
+            }
+        };
 
-        SourceSet sources_;
+        using SourceMap = std::unordered_map<std::size_t, t_Value, Hasher>;
+
+    protected:
+        SourceMap sources_;
 
         std::mutex update_mutex_;
         std::mutex drain_mutex_;
+
+    protected:
+        static std::size_t hash(const ariles2::DefaultBase &source)
+        {
+            // redundant
+            // const std::size_t ariles_hash = std::hash<std::string>{}(source.arilesDefaultID());
+            return (typeid(source).hash_code());
+        }
 
     public:
         void tryVisit(const std::function<void(t_Value &)> visitor)
         {
             if (drain_mutex_.try_lock())
             {
-                for (std::pair<const std::string, t_Value> &source : sources_)
+                for (std::pair<const std::size_t, t_Value> &source : sources_)
                 {
                     visitor(source.second);
                 }
@@ -86,7 +105,7 @@ namespace intrometry::backend
             const std::lock_guard<std::mutex> update_lock(update_mutex_);
             const std::lock_guard<std::mutex> drain_lock(drain_mutex_);
 
-            sources_.try_emplace(source.arilesDefaultID(), source, std::forward<t_Args>(args)...);
+            sources_.try_emplace(hash(source), source, std::forward<t_Args>(args)...);
         }
 
         void erase(const ariles2::DefaultBase &source)
@@ -94,25 +113,22 @@ namespace intrometry::backend
             const std::lock_guard<std::mutex> update_lock(update_mutex_);
             const std::lock_guard<std::mutex> drain_lock(drain_mutex_);
 
-            sources_.erase(source.arilesDefaultID());
+            sources_.erase(hash(source));
         }
 
         bool tryVisit(const ariles2::DefaultBase &source, const std::function<void(t_Value &)> visitor)
         {
             if (update_mutex_.try_lock())
             {
-                const typename SourceSet::iterator source_it = sources_.find(source.arilesDefaultID());
+                const typename SourceMap::iterator source_it = sources_.find(hash(source));
 
                 if (sources_.end() == source_it)
                 {
                     update_mutex_.unlock();
                     return (false);
                 }
-                else
-                {
-                    visitor(source_it->second);
-                }
 
+                visitor(source_it->second);
                 update_mutex_.unlock();
             }
             return (true);
