@@ -6,7 +6,6 @@
     @brief
 */
 
-#include <unordered_map>
 
 #include <ariles2/visitors/namevalue2.h>
 #include <thread_supervisor/supervisor.h>
@@ -297,22 +296,16 @@ namespace intrometry::pjmsg_mcap::sink
     }
 }  // namespace intrometry::pjmsg_mcap::sink
 
+
 namespace intrometry::pjmsg_mcap::sink
 {
     class Implementation
     {
     protected:
-        using SourceSet = std::unordered_map<std::string, WriterWrapper>;
-
-
-    protected:
-        std::mutex update_mutex_;
-        std::mutex write_mutex_;
-
         tut::thread::Supervisor<> thread_supervisor_;
         uint32_t names_version_;
 
-        SourceSet sources_;
+        intrometry::backend::SourceContainer<WriterWrapper> sources_;
 
         McapCDRWriter mcap_writer_;
 
@@ -365,15 +358,7 @@ namespace intrometry::pjmsg_mcap::sink
 
                 while (not thread_supervisor_.isInterrupted())
                 {
-                    if (write_mutex_.try_lock())
-                    {
-                        for (std::pair<const std::string, WriterWrapper> &source : sources_)
-                        {
-                            source.second.serialize(mcap_writer_);
-                        }
-
-                        write_mutex_.unlock();
-                    }
+                    sources_.tryVisit([this](WriterWrapper &writer) { writer.serialize(mcap_writer_); });
 
                     timer.step();
                 }
@@ -388,44 +373,25 @@ namespace intrometry::pjmsg_mcap::sink
 
         void assign(const ariles2::DefaultBase &source, const Source::Parameters &parameters)
         {
-            const std::lock_guard<std::mutex> update_lock(update_mutex_);
-            const std::lock_guard<std::mutex> write_lock(write_mutex_);
-
-            sources_.try_emplace(source.arilesDefaultID(), source, parameters.persistent_structure_, names_version_);
+            sources_.tryEmplace(source, parameters.persistent_structure_, names_version_);
         }
 
         void retract(const ariles2::DefaultBase &source)
         {
-            const std::lock_guard<std::mutex> update_lock(update_mutex_);
-            const std::lock_guard<std::mutex> write_lock(write_mutex_);
-
-            sources_.erase(source.arilesDefaultID());
+            sources_.erase(source);
         }
 
         void write(const ariles2::DefaultBase &source, const uint64_t timestamp)
         {
-            if (update_mutex_.try_lock())
+            if (not sources_.tryVisit(
+                        source,
+                        [this, &source, timestamp](WriterWrapper &writer) {
+                            writer.write(
+                                    source, (0 == timestamp) ? intrometry::backend::now() : timestamp, names_version_);
+                        }))
             {
-                const SourceSet::iterator source_it = sources_.find(source.arilesDefaultID());
-
-                if (sources_.end() == source_it)
-                {
-                    thread_supervisor_.log(
-                            "Measurement source handler is not assigned, skipping id: ", source.arilesDefaultID());
-                }
-                else
-                {
-                    if (0 == timestamp)
-                    {
-                        source_it->second.write(source, intrometry::backend::now(), names_version_);
-                    }
-                    else
-                    {
-                        source_it->second.write(source, timestamp, names_version_);
-                    }
-                }
-
-                update_mutex_.unlock();
+                thread_supervisor_.log(
+                        "Measurement source handler is not assigned, skipping id: ", source.arilesDefaultID());
             }
         }
     };

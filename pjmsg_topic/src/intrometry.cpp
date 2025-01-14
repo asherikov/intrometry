@@ -217,17 +217,11 @@ namespace intrometry::pjmsg_topic
         class Implementation
         {
         protected:
-            using SourceSet = std::unordered_map<std::string, WriterWrapper>;
-
-
-        protected:
             std::shared_ptr<rclcpp::Node> node_;
             tut::thread::Supervisor<ROSLogger> thread_supervisor_;
             uint32_t names_version_;
 
-            SourceSet sources_;
-            std::mutex update_mutex_;
-            std::mutex publish_mutex_;
+            intrometry::backend::SourceContainer<WriterWrapper> sources_;
 
             NamesPublisherPtr names_publisher_;
             ValuesPublisherPtr values_publisher_;
@@ -237,7 +231,8 @@ namespace intrometry::pjmsg_topic
             {
                 const std::string node_id = intrometry::backend::normalizeId(sink_id);
                 const std::string random_id = intrometry::backend::getRandomId(8);
-                const std::string topic_prefix = intrometry::backend::str_concat("intrometry/", node_id.empty() ? random_id : node_id);
+                const std::string topic_prefix =
+                        intrometry::backend::str_concat("intrometry/", node_id.empty() ? random_id : node_id);
 
                 node_ = std::make_shared<rclcpp::Node>(
                         intrometry::backend::str_concat("intrometry_", node_id, "_", random_id),
@@ -285,15 +280,8 @@ namespace intrometry::pjmsg_topic
 
                     while (rclcpp::ok() and not thread_supervisor_.isInterrupted())
                     {
-                        if (publish_mutex_.try_lock())
-                        {
-                            for (std::pair<const std::string, WriterWrapper> &source : sources_)
-                            {
-                                source.second.publish(names_publisher_, values_publisher_);
-                            }
-
-                            publish_mutex_.unlock();
-                        }
+                        sources_.tryVisit([this](WriterWrapper &writer)
+                                          { writer.publish(names_publisher_, values_publisher_); });
                         rclcpp::spin_some(node_);
 
                         timer.step();
@@ -309,45 +297,27 @@ namespace intrometry::pjmsg_topic
 
             void assign(const ariles2::DefaultBase &source, const Source::Parameters &parameters)
             {
-                const std::lock_guard<std::mutex> update_lock(update_mutex_);
-                const std::lock_guard<std::mutex> publish_lock(publish_mutex_);
-
-                sources_.try_emplace(
-                        source.arilesDefaultID(), source, parameters.persistent_structure_, names_version_);
+                sources_.tryEmplace(source, parameters.persistent_structure_, names_version_);
             }
 
             void retract(const ariles2::DefaultBase &source)
             {
-                const std::lock_guard<std::mutex> update_lock(update_mutex_);
-                const std::lock_guard<std::mutex> publish_lock(publish_mutex_);
-
-                sources_.erase(source.arilesDefaultID());
+                sources_.erase(source);
             }
 
             void write(const ariles2::DefaultBase &source, const rclcpp::Time &timestamp)
             {
-                if (update_mutex_.try_lock())
+                if (not sources_.tryVisit(
+                            source,
+                            [this, &source, &timestamp](WriterWrapper &writer) {
+                                writer.write(
+                                        source,
+                                        (0 == timestamp.nanoseconds()) ? node_->now() : timestamp,
+                                        names_version_);
+                            }))
                 {
-                    const SourceSet::iterator source_it = sources_.find(source.arilesDefaultID());
-
-                    if (sources_.end() == source_it)
-                    {
-                        thread_supervisor_.log(
-                                "Measurement source handler is not assigned, skipping id: ", source.arilesDefaultID());
-                    }
-                    else
-                    {
-                        if (0 == timestamp.nanoseconds())
-                        {
-                            source_it->second.write(source, node_->now(), names_version_);
-                        }
-                        else
-                        {
-                            source_it->second.write(source, timestamp, names_version_);
-                        }
-                    }
-
-                    update_mutex_.unlock();
+                    thread_supervisor_.log(
+                            "Measurement source handler is not assigned, skipping id: ", source.arilesDefaultID());
                 }
             }
         };
