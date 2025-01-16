@@ -206,6 +206,7 @@ namespace
     {
     public:
         std::mutex mutex_;
+        const std::string id_;
         ariles2::namevalue2::Writer::Parameters writer_parameters_;
         std::shared_ptr<NameValueContainer> data_;
         ariles2::namevalue2::Writer writer_;
@@ -213,8 +214,12 @@ namespace
         bool serialized_;
 
     public:
-        WriterWrapper(const ariles2::DefaultBase &source, const bool persistent_structure, uint32_t &names_version)
-          : data_(std::make_shared<NameValueContainer>()), writer_(data_)
+        WriterWrapper(
+                const ariles2::DefaultBase &source,
+                std::string id,
+                const bool persistent_structure,
+                uint32_t &names_version)
+          : id_(std::move(id)), data_(std::make_shared<NameValueContainer>()), writer_(data_)
         {
             writer_parameters_ = writer_.getDefaultParameters();
             if (persistent_structure)
@@ -223,7 +228,7 @@ namespace
             }
 
             // write to allocate memory
-            ariles2::apply(writer_, source);
+            ariles2::apply(writer_, source, id_);
             data_->finalize(writer_parameters_.persistent_structure_, 0, names_version);
 
             serialized_ = true;  // do not serialize on assignment
@@ -252,7 +257,7 @@ namespace
         {
             if (mutex_.try_lock())
             {
-                ariles2::apply(writer_, source);
+                ariles2::apply(writer_, source, id_);
                 data_->finalize(writer_parameters_.persistent_structure_, timestamp, names_version);
                 serialized_ = false;
 
@@ -302,12 +307,13 @@ namespace intrometry::pjmsg_mcap::sink
     class Implementation
     {
     protected:
-        tut::thread::Supervisor<> thread_supervisor_;
+        McapCDRWriter mcap_writer_;
+
+    public:
         uint32_t names_version_;
 
         intrometry::backend::SourceContainer<WriterWrapper> sources_;
-
-        McapCDRWriter mcap_writer_;
+        tut::thread::Supervisor<> thread_supervisor_;
 
     public:
         Implementation(const std::filesystem::path &directory, const std::string &sink_id, const std::size_t rate)
@@ -369,31 +375,6 @@ namespace intrometry::pjmsg_mcap::sink
             }
             thread_supervisor_.interrupt();
         }
-
-
-        void assign(const ariles2::DefaultBase &source, const Source::Parameters &parameters)
-        {
-            sources_.tryEmplace(source, parameters.persistent_structure_, names_version_);
-        }
-
-        void retract(const ariles2::DefaultBase &source)
-        {
-            sources_.erase(source);
-        }
-
-        void write(const ariles2::DefaultBase &source, const uint64_t timestamp)
-        {
-            if (not sources_.tryVisit(
-                        source,
-                        [this, &source, timestamp](WriterWrapper &writer) {
-                            writer.write(
-                                    source, (0 == timestamp) ? intrometry::backend::now() : timestamp, names_version_);
-                        }))
-            {
-                thread_supervisor_.log(
-                        "Measurement source handler is not assigned, skipping id: ", source.arilesDefaultID());
-            }
-        }
     };
 }  // namespace intrometry::pjmsg_mcap::sink
 
@@ -414,29 +395,41 @@ namespace intrometry::pjmsg_mcap
     }
 
 
-    void Sink::assign(const ariles2::DefaultBase &source, const Source::Parameters &parameters)
+    void Sink::assign(const std::string &id, const ariles2::DefaultBase &source, const Source::Parameters &parameters)
     {
         if (pimpl_)
         {
-            pimpl_->assign(source, parameters);
+            pimpl_->sources_.tryEmplace(id, source, parameters.persistent_structure_, pimpl_->names_version_);
         }
     }
 
 
-    void Sink::retract(const ariles2::DefaultBase &source)
+    void Sink::retract(const std::string &id, const ariles2::DefaultBase &source)
     {
         if (pimpl_)
         {
-            pimpl_->retract(source);
+            pimpl_->sources_.erase(id, source);
         }
     }
 
 
-    void Sink::write(const ariles2::DefaultBase &source, const uint64_t timestamp)
+    void Sink::write(const std::string &id, const ariles2::DefaultBase &source, const uint64_t timestamp)
     {
         if (pimpl_)
         {
-            pimpl_->write(source, timestamp);
+            if (not pimpl_->sources_.tryVisit(
+                        id,
+                        source,
+                        [this, &source, &timestamp](WriterWrapper &writer) {
+                            writer.write(
+                                    source,
+                                    (0 == timestamp) ? intrometry::backend::now() : timestamp,
+                                    pimpl_->names_version_);
+                        }))
+            {
+                pimpl_->thread_supervisor_.log(
+                        "Measurement source handler is not assigned, skipping id: ", source.arilesDefaultID());
+            }
         }
     }
 }  // namespace intrometry::pjmsg_mcap

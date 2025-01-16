@@ -41,7 +41,12 @@ namespace intrometry
          *
          * @note Does nothing if initialization failed.
          */
+        void assign(const ariles2::DefaultBase &source, const Source::Parameters &parameters = Source::Parameters())
+        {
+            assign(std::string(), source, parameters);
+        }
         virtual void assign(
+                const std::string &id,  // use to resolve ambiguity between sources of the same type
                 const ariles2::DefaultBase &source,
                 const Source::Parameters &parameters = Source::Parameters()) = 0;
 
@@ -52,7 +57,11 @@ namespace intrometry
          * @note Does nothing if initialization failed.
          * @note Does nothing if the source has not been assigned.
          */
-        virtual void retract(const ariles2::DefaultBase &source) = 0;
+        void retract(const ariles2::DefaultBase &source)
+        {
+            retract(std::string(), source);
+        }
+        virtual void retract(const std::string &id, const ariles2::DefaultBase &source) = 0;
 
         /**
          * Write data. Data is copied to internal buffers, and scheduled for
@@ -61,7 +70,11 @@ namespace intrometry
          * @note Does nothing if source is unassigned.
          * @note Does nothing if initialization failed.
          */
-        virtual void write(const ariles2::DefaultBase &source, const uint64_t timestamp = 0) = 0;
+        void write(const ariles2::DefaultBase &source, const uint64_t timestamp = 0)
+        {
+            write(std::string(), source, timestamp);
+        }
+        virtual void write(const std::string &id, const ariles2::DefaultBase &source, const uint64_t timestamp = 0) = 0;
 
 
         /// Batch assignment

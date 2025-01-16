@@ -14,6 +14,7 @@
 #include <unordered_map>
 #include <functional>
 #include <typeinfo>
+#include <typeindex>
 
 #include <ariles2/ariles.h>
 
@@ -60,67 +61,103 @@ namespace intrometry::backend
     class INTROMETRY_HIDDEN SourceContainer
     {
     protected:
-        // passthrough hasher
+        using Key = std::pair<std::type_index, std::string>;
+
         struct Hasher
         {
-            std::size_t operator()(const std::size_t key) const
+            std::size_t operator()(const Key &key) const
             {
-                return key;
+                std::size_t result = std::hash<std::type_index>{}(key.first);
+                if (not key.second.empty())
+                {
+                    result ^= std::hash<std::string>{}(key.second)           // NOLINT
+                              + 0x9e3779b9 + (result << 6) + (result >> 2);  // NOLINT
+                }
+                return (result);
             }
         };
 
-        using SourceMap = std::unordered_map<std::size_t, t_Value, Hasher>;
+        using SourceMap = std::unordered_map<Key, t_Value, Hasher>;
+        using CollisionMap = std::unordered_map<std::string, std::size_t>;
 
     protected:
         SourceMap sources_;
+        CollisionMap collision_counters_;
 
         std::mutex update_mutex_;
-        std::mutex drain_mutex_;
+        std::mutex flush_mutex_;
 
     protected:
-        static std::size_t hash(const ariles2::DefaultBase &source)
+        /// @todo requires string copy
+        static Key getKey(const std::string &id, const ariles2::DefaultBase &source)
         {
-            // redundant
-            // const std::size_t ariles_hash = std::hash<std::string>{}(source.arilesDefaultID());
-            return (typeid(source).hash_code());
+            // source.arilesDefaultID()
+            // this is redundant and less reliable than type_index
+            // since it is provided by the user
+
+            // id
+            // this is also provided by the user and is also unreliable,
+            // but in general provides extra information than type_index
+            // and should be added to hash
+            return { std::type_index(typeid(source)), id };
+        }
+
+        std::string getUniqueId(const std::string &id)
+        {
+            const typename CollisionMap::iterator collision_counter_it = collision_counters_.find(id);
+            if (collision_counters_.end() == collision_counter_it)
+            {
+                collision_counters_[id] = 0;
+                return (id);
+            }
+
+            ++collision_counter_it->second;
+            return (str_concat(id, "_intrometry", std::to_string(collision_counter_it->second)));
         }
 
     public:
         void tryVisit(const std::function<void(t_Value &)> visitor)
         {
-            if (drain_mutex_.try_lock())
+            if (flush_mutex_.try_lock())
             {
-                for (std::pair<const std::size_t, t_Value> &source : sources_)
+                for (std::pair<const Key, t_Value> &source : sources_)
                 {
                     visitor(source.second);
                 }
 
-                drain_mutex_.unlock();
+                flush_mutex_.unlock();
             }
         }
 
         template <class... t_Args>
-        void tryEmplace(const ariles2::DefaultBase &source, t_Args &&...args)
+        void tryEmplace(const std::string &id, const ariles2::DefaultBase &source, t_Args &&...args)
         {
             const std::lock_guard<std::mutex> update_lock(update_mutex_);
-            const std::lock_guard<std::mutex> drain_lock(drain_mutex_);
+            const std::lock_guard<std::mutex> flush_lock(flush_mutex_);
 
-            sources_.try_emplace(hash(source), source, std::forward<t_Args>(args)...);
+            sources_.try_emplace(
+                    getKey(id, source),
+                    source,
+                    getUniqueId(id.empty() ? source.arilesDefaultID() : id),
+                    std::forward<t_Args>(args)...);
         }
 
-        void erase(const ariles2::DefaultBase &source)
+        void erase(const std::string &id, const ariles2::DefaultBase &source)
         {
             const std::lock_guard<std::mutex> update_lock(update_mutex_);
-            const std::lock_guard<std::mutex> drain_lock(drain_mutex_);
+            const std::lock_guard<std::mutex> flush_lock(flush_mutex_);
 
-            sources_.erase(hash(source));
+            sources_.erase(getKey(id, source));
         }
 
-        bool tryVisit(const ariles2::DefaultBase &source, const std::function<void(t_Value &)> visitor)
+        bool tryVisit(
+                const std::string &id,
+                const ariles2::DefaultBase &source,
+                const std::function<void(t_Value &)> visitor)
         {
             if (update_mutex_.try_lock())
             {
-                const typename SourceMap::iterator source_it = sources_.find(hash(source));
+                const typename SourceMap::iterator source_it = sources_.find(getKey(id, source));
 
                 if (sources_.end() == source_it)
                 {

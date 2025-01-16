@@ -37,7 +37,7 @@ namespace intrometry::pjmsg_mcap
 
         public:
             Parameters(const std::string &id = "");  // NOLINT
-            Parameters(const char *id = "");  // NOLINT
+            Parameters(const char *id = "");         // NOLINT
 
             Parameters &rate(const std::size_t value);
             Parameters &id(const std::string &value);
@@ -55,11 +55,17 @@ namespace intrometry::pjmsg_mcap
     {
     public:
         using SinkPIMPLBase::SinkPIMPLBase;
+        using SinkPIMPLBase::assign;
+        using SinkPIMPLBase::write;
+        using SinkPIMPLBase::retract;
         ~Sink();
 
         bool initialize();
-        void assign(const ariles2::DefaultBase &source, const Source::Parameters &parameters = Source::Parameters());
-        void retract(const ariles2::DefaultBase &source);
-        void write(const ariles2::DefaultBase &source, const uint64_t timestamp = 0);
+        void assign(
+                const std::string &id,
+                const ariles2::DefaultBase &source,
+                const Source::Parameters &parameters = Source::Parameters());
+        void retract(const std::string &id, const ariles2::DefaultBase &source);
+        void write(const std::string &id, const ariles2::DefaultBase &source, const uint64_t timestamp = 0);
     };
 }  // namespace intrometry::pjmsg_mcap
