@@ -12,7 +12,34 @@ jobs:
             - run: make install_deps_common
             - run: make spell
 
-    jammy_ccws:
+    jammy_ccws_static:
+        runs-on: ubuntu-22.04
+        steps:
+            - uses: actions/checkout@v4
+              with:
+                repository: asherikov/ccws
+            - uses: actions/checkout@v4
+              with:
+                path: src/intrometry
+            - uses: actions/checkout@v4
+              with:
+                repository: asherikov/thread_supervisor
+                path: src/thread_supervisor
+            - uses: actions/checkout@v4
+              with:
+                repository: asherikov/ariles
+                ref: pkg_ws_2
+                path: src/ariles
+            - run: make bp_install_build BUILD_PROFILE=scan_build
+            - run: make bp_install_build BUILD_PROFILE=static_checks
+            - run: mkdir -p src/.ccws
+            - run: echo "intrometry/pjmsg_mcap/src/3rdparty/" >> src/.ccws/static_checks.exceptions.paths
+            - run: make BUILD_PROFILE=static_checks
+            - run: make dep_install PKG=intrometry_pjmsg_mcap
+            - run: make dep_install PKG=intrometry_pjmsg_topic
+            - run: make intrometry BUILD_PROFILE=scan_build
+
+    jammy_ccws_plain:
         runs-on: ubuntu-22.04
         steps:
             - uses: actions/checkout@v4
@@ -31,13 +58,55 @@ jobs:
                 ref: pkg_ws_2
                 path: src/ariles
             - run: make bp_install_build BUILD_PROFILE=reldebug
-            - run: make bp_install_build BUILD_PROFILE=scan_build
-            - run: make bp_install_build BUILD_PROFILE=static_checks
-            - run: mkdir -p src/.ccws
-            - run: echo "intrometry/pjmsg_mcap/src/3rdparty/" >> src/.ccws/static_checks.exceptions.paths
-            - run: make BUILD_PROFILE=static_checks
             - run: make dep_install PKG=intrometry_pjmsg_mcap
             - run: make dep_install PKG=intrometry_pjmsg_topic
-            - run: make intrometry BUILD_PROFILE=scan_build
             - run: make intrometry
             - run: make test PKG=intrometry_tests
+
+    jammy_ccws_threadsan:
+        runs-on: ubuntu-22.04
+        steps:
+            - uses: actions/checkout@v4
+              with:
+                repository: asherikov/ccws
+            - uses: actions/checkout@v4
+              with:
+                path: src/intrometry
+            - uses: actions/checkout@v4
+              with:
+                repository: asherikov/thread_supervisor
+                path: src/thread_supervisor
+            - uses: actions/checkout@v4
+              with:
+                repository: asherikov/ariles
+                ref: pkg_ws_2
+                path: src/ariles
+            - run: make bp_install_build BUILD_PROFILE=thread_sanitizer
+            - run: make dep_install PKG=intrometry_pjmsg_mcap
+            - run: make dep_install PKG=intrometry_pjmsg_topic
+            - run: make intrometry BUILD_PROFILE=thread_sanitizer
+            - run: make test PKG=intrometry_tests BUILD_PROFILE=thread_sanitizer
+
+    jammy_ccws_asan:
+        runs-on: ubuntu-22.04
+        steps:
+            - uses: actions/checkout@v4
+              with:
+                repository: asherikov/ccws
+            - uses: actions/checkout@v4
+              with:
+                path: src/intrometry
+            - uses: actions/checkout@v4
+              with:
+                repository: asherikov/thread_supervisor
+                path: src/thread_supervisor
+            - uses: actions/checkout@v4
+              with:
+                repository: asherikov/ariles
+                ref: pkg_ws_2
+                path: src/ariles
+            - run: make bp_install_build BUILD_PROFILE=addr_undef_sanitizers
+            - run: make dep_install PKG=intrometry_pjmsg_mcap
+            - run: make dep_install PKG=intrometry_pjmsg_topic
+            - run: make intrometry BUILD_PROFILE=addr_undef_sanitizers
+            - run: make test PKG=intrometry_tests BUILD_PROFILE=addr_undef_sanitizers
