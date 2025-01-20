@@ -42,7 +42,9 @@ namespace intrometry_tests
                     {
                         std::stringstream output;
                         plotjuggler_msgs::msg::to_block_style_yaml(msg, output);
+                        std::cerr << "---------------------------\n";
                         std::cerr << output.str();
+                        std::cerr << std::flush;
                         ++counter_;
                     });
         }

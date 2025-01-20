@@ -94,12 +94,15 @@ for(...)
 sink.retract(debug);
 ```
 
-Example of a published message (`plotjuggler_msgs/msg/statistics_names`)
+### Examples of a published messages
+
+`plotjuggler_msgs/msg/statistics_names`:
+
 ```
 header:
   stamp:
-    sec: 0
-    nanosec: 0
+    sec: XXX
+    nanosec: XXX
   frame_id: ""
 names:
 - "ArilesDebug.duration"
@@ -107,9 +110,27 @@ names:
 - "ArilesDebug.vec_0"
 - "ArilesDebug.vec_1"
 - "ArilesDebug.vec_2"
+names_version: 1852399462
 ```
 
-Key features:
+`plotjuggler_msgs/msg/statistics_values`:
+
+```
+header:
+  stamp:
+    sec: XXX
+    nanosec: XXX
+  frame_id: ""
+values:
+- 0.00000
+- 0.00000
+- 3.40000
+- 2.20000
+- 2.10000
+names_version: 1852399462
+```
+
+### Key features
 
 - `intrometry` is less verbose when working with a large number of metrics due
   to their grouping in classes, e.g., there is no need to explicitly specify
@@ -122,7 +143,7 @@ Key features:
 - automatic generation of variable names and support for various types suchs as
   `Eigen` matrices, stl vectors, maps, etc is provided by `ariles`.
 
-Methods:
+### Methods
 
 - `initialize()`, `assign()`, and `retract()` methods are "heavy" and are meant
   to be used sparingly.

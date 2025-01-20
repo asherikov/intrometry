@@ -318,6 +318,8 @@ namespace intrometry::pjmsg_mcap::sink
     public:
         Implementation(const std::filesystem::path &directory, const std::string &sink_id, const std::size_t rate)
         {
+            names_version_ = intrometry::backend::getRandomUInt32();
+
             const std::string node_id = intrometry::backend::normalizeId(sink_id);
             const std::string random_id = intrometry::backend::getRandomId(8);
             const std::string topic_prefix =
