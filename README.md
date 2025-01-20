@@ -22,10 +22,12 @@ Intrometry
 Introduction
 ------------
 
-ROS2 telemetry collection utility that addresses the same problem as
-<https://github.com/pal-robotics/pal_statistics>, but in a different way. The
+Telemetry collection utility that addresses the same problem as
+<https://github.com/pal-robotics/pal_statistics> and
+<https://github.com/PickNikRobotics/data_tamer/>, but in a different way. The
 main API difference is that `intrometry` relies on `ariles` serialization
-library <https://github.com/asherikov/ariles> instead of macro.
+library <https://github.com/asherikov/ariles> instead of macro, and keeps track
+of updated data instead of taking global snapshots.
 
 Doxygen documentation: <https://asherikov.github.io/intrometry/doxygen/group__API.html>
 
