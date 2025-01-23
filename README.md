@@ -29,8 +29,6 @@ main API difference is that `intrometry` relies on `ariles` serialization
 library <https://github.com/asherikov/ariles> instead of macro, and keeps track
 of updated data instead of taking global snapshots.
 
-Doxygen documentation: <https://asherikov.github.io/intrometry/doxygen/group__API.html>
-
 
 Design
 ------
