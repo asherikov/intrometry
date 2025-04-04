@@ -10,7 +10,7 @@
 #pragma once
 
 #include <memory>
-#include <mutex>
+#include <shared_mutex>
 #include <unordered_map>
 #include <functional>
 #include <typeinfo>
@@ -77,15 +77,38 @@ namespace intrometry::backend
             }
         };
 
-        using SourceMap = std::unordered_map<Key, t_Value, Hasher>;
+        class SourceWithMutex
+        {
+        public:
+            t_Value value_;
+            std::mutex mutex_;
+
+        public:
+            template <class... t_Args>
+            explicit SourceWithMutex(t_Args &&...args) : value_(std::forward<t_Args>(args)...)
+            {
+            }
+
+            void tryVisit(const std::function<void(t_Value &)> &visitor)
+            {
+                if (mutex_.try_lock())
+                {
+                    visitor(value_);
+                    mutex_.unlock();
+                }
+            }
+        };
+
+        using SourceMap = std::unordered_map<Key, SourceWithMutex, Hasher>;
         using CollisionMap = std::unordered_map<std::string, std::size_t>;
 
     protected:
         SourceMap sources_;
         CollisionMap collision_counters_;
 
-        std::mutex update_mutex_;
-        std::mutex flush_mutex_;
+        // additions and removals of sources are exclusive
+        // visits are shared since there are extra locks for each source
+        std::shared_mutex sources_mutex_;
 
     protected:
         /// @todo requires string copy
@@ -118,22 +141,21 @@ namespace intrometry::backend
     public:
         void tryVisit(const std::function<void(t_Value &)> visitor)
         {
-            if (flush_mutex_.try_lock())
+            if (sources_mutex_.try_lock_shared())
             {
-                for (std::pair<const Key, t_Value> &source : sources_)
+                for (std::pair<const Key, SourceWithMutex> &source : sources_)
                 {
-                    visitor(source.second);
+                    source.second.tryVisit(visitor);
                 }
 
-                flush_mutex_.unlock();
+                sources_mutex_.unlock();
             }
         }
 
         template <class... t_Args>
         void tryEmplace(const std::string &id, const ariles2::DefaultBase &source, t_Args &&...args)
         {
-            const std::lock_guard<std::mutex> update_lock(update_mutex_);
-            const std::lock_guard<std::mutex> flush_lock(flush_mutex_);
+            const std::lock_guard lock(sources_mutex_);
 
             sources_.try_emplace(
                     getKey(id, source),
@@ -144,8 +166,7 @@ namespace intrometry::backend
 
         void erase(const std::string &id, const ariles2::DefaultBase &source)
         {
-            const std::lock_guard<std::mutex> update_lock(update_mutex_);
-            const std::lock_guard<std::mutex> flush_lock(flush_mutex_);
+            const std::lock_guard lock(sources_mutex_);
 
             sources_.erase(getKey(id, source));
         }
@@ -155,18 +176,18 @@ namespace intrometry::backend
                 const ariles2::DefaultBase &source,
                 const std::function<void(t_Value &)> visitor)
         {
-            if (update_mutex_.try_lock())
+            if (sources_mutex_.try_lock_shared())
             {
                 const typename SourceMap::iterator source_it = sources_.find(getKey(id, source));
 
                 if (sources_.end() == source_it)
                 {
-                    update_mutex_.unlock();
+                    sources_mutex_.unlock();
                     return (false);
                 }
 
-                visitor(source_it->second);
-                update_mutex_.unlock();
+                source_it->second.tryVisit(visitor);
+                sources_mutex_.unlock();
             }
             return (true);
         }

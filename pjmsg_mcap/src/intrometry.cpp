@@ -205,7 +205,6 @@ namespace
     class WriterWrapper
     {
     public:
-        std::mutex mutex_;
         const std::string id_;
         ariles2::namevalue2::Writer::Parameters writer_parameters_;
         std::shared_ptr<NameValueContainer> data_;
@@ -236,33 +235,24 @@ namespace
 
         void serialize(McapCDRWriter &mcap_writer)
         {
-            if (mutex_.try_lock())
+            if (not serialized_)
             {
-                if (not serialized_)
+                if (data_->new_names_version_)
                 {
-                    if (data_->new_names_version_)
-                    {
-                        mcap_writer.write(data_->names_);
-                        data_->new_names_version_ = false;
-                    }
-
-                    mcap_writer.write(data_->values_);
-                    serialized_ = true;
+                    mcap_writer.write(data_->names_);
+                    data_->new_names_version_ = false;
                 }
-                mutex_.unlock();
+
+                mcap_writer.write(data_->values_);
+                serialized_ = true;
             }
         }
 
         void write(const ariles2::DefaultBase &source, const uint64_t timestamp, uint32_t &names_version)
         {
-            if (mutex_.try_lock())
-            {
-                ariles2::apply(writer_, source, id_);
-                data_->finalize(writer_parameters_.persistent_structure_, timestamp, names_version);
-                serialized_ = false;
-
-                mutex_.unlock();
-            }
+            ariles2::apply(writer_, source, id_);
+            data_->finalize(writer_parameters_.persistent_structure_, timestamp, names_version);
+            serialized_ = false;
         }
     };
 }  // namespace

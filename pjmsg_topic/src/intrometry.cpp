@@ -92,7 +92,6 @@ namespace
     class WriterWrapper
     {
     public:
-        std::mutex mutex_;
         const std::string id_;
         ariles2::namevalue2::Writer::Parameters writer_parameters_;
         std::shared_ptr<NameValueContainer> data_;
@@ -125,33 +124,24 @@ namespace
 
         void publish(const NamesPublisherPtr &names_sink, const ValuesPublisherPtr &values_sink)
         {
-            if (mutex_.try_lock())
+            if (not published_)
             {
-                if (not published_)
+                if (data_->new_names_version_)
                 {
-                    if (data_->new_names_version_)
-                    {
-                        names_sink->publish(data_->names_);
-                        data_->new_names_version_ = false;
-                    }
-                    values_sink->publish(data_->values_);
-                    published_ = true;
+                    names_sink->publish(data_->names_);
+                    data_->new_names_version_ = false;
                 }
-                mutex_.unlock();
+                values_sink->publish(data_->values_);
+                published_ = true;
             }
         }
 
 
         void write(const ariles2::DefaultBase &source, const rclcpp::Time &timestamp, uint32_t &names_version)
         {
-            if (mutex_.try_lock())
-            {
-                ariles2::apply(writer_, source, id_);
-                data_->finalize(writer_parameters_.persistent_structure_, timestamp, names_version);
-                published_ = false;
-
-                mutex_.unlock();
-            }
+            ariles2::apply(writer_, source, id_);
+            data_->finalize(writer_parameters_.persistent_structure_, timestamp, names_version);
+            published_ = false;
         }
     };
 }  // namespace
