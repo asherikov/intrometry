@@ -1,7 +1,7 @@
 FIND_SOURCES=find ./frontend/ ./pjmsg_topic ./pjmsg_mcap/ -iname "*.h" -or -iname "*.cpp" | grep -v 3rdparty
 
-# 0ebaf69 = releases/cpp/v1.4.1
-MCAP_SHA=0ebaf69efa2dd5dbe33a882ce51caa8451d518d2
+# 0523591 = releases/cpp/v1.4.2 + visibility patch
+MCAP_SHA=05235919810ee02bfc68d4949c8b304da8b1376b
 MCAP_DIR=pjmsg_mcap/src/3rdparty/mcap
 
 # 2.2.6
@@ -23,7 +23,6 @@ update_mcap:
 		-not -wholename "${MCAP_DIR}/cpp" \
 		-not -wholename "${MCAP_DIR}" \
 		| xargs rm -rf
-	cp pjmsg_mcap/src/3rdparty/mcap_visibility.hpp ${MCAP_DIR}/cpp/mcap/include/mcap/visibility.hpp
 
 update_fastcdr:
 	-git remote add fastcdr https://github.com/eProsima/Fast-CDR.git --no-tags

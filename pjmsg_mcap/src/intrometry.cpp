@@ -18,6 +18,7 @@
 #define MCAP_IMPLEMENTATION
 #define MCAP_COMPRESSION_NO_LZ4
 #define MCAP_COMPRESSION_NO_ZSTD
+#define MCAP_PUBLIC __attribute__((visibility("hidden")))
 #include <mcap/writer.hpp>
 
 #include "intrometry/intrometry.h"

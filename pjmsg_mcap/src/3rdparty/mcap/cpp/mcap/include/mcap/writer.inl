@@ -61,6 +61,12 @@ void FileWriter::handleWrite(const std::byte* data, uint64_t size) {
   size_ += size;
 }
 
+void FileWriter::flush() {
+  if (file_) {
+    std::fflush(file_);
+  }
+}
+
 void FileWriter::end() {
   if (file_) {
     std::fclose(file_);
@@ -84,8 +90,12 @@ void StreamWriter::handleWrite(const std::byte* data, uint64_t size) {
   size_ += size;
 }
 
-void StreamWriter::end() {
+void StreamWriter::flush() {
   stream_.flush();
+}
+
+void StreamWriter::end() {
+  flush();
 }
 
 uint64_t StreamWriter::size() const {
@@ -294,6 +304,8 @@ McapWriter::~McapWriter() {
 }
 
 void McapWriter::open(IWritable& writer, const McapWriterOptions& options) {
+  // If the writer was opened, close it first
+  close();
   options_ = options;
   opened_ = true;
   chunkSize_ = options.noChunking ? 0 : options.chunkSize;
@@ -328,6 +340,8 @@ void McapWriter::open(IWritable& writer, const McapWriterOptions& options) {
 }
 
 Status McapWriter::open(const std::string_view filename, const McapWriterOptions& options) {
+  // If the writer was opened, close it first
+  close();
   fileOutput_ = std::make_unique<FileWriter>();
   const auto status = fileOutput_->open(filename);
   if (!status.ok()) {
@@ -339,6 +353,8 @@ Status McapWriter::open(const std::string_view filename, const McapWriterOptions
 }
 
 void McapWriter::open(std::ostream& stream, const McapWriterOptions& options) {
+  // If the writer was opened, close it first
+  close();
   streamOutput_ = std::make_unique<StreamWriter>(stream);
   open(*streamOutput_, options);
 }
@@ -379,16 +395,19 @@ void McapWriter::close() {
     ByteOffset schemaStart = fileOutput.size();
     if (!options_.noRepeatedSchemas) {
       // Write all schema records
-      for (const auto& schema : schemas_) {
-        write(fileOutput, schema);
+      for (const auto& schemaId : writtenSchemas_) {
+        write(fileOutput, schemas_[schemaId - 1]);
       }
     }
 
     ByteOffset channelStart = fileOutput.size();
     if (!options_.noRepeatedChannels) {
-      // Write all channel records
+      // Write all channel records, but only if they appeared in this file
+      auto& channelMessageCounts = statistics_.channelMessageCounts;
       for (const auto& channel : channels_) {
-        write(fileOutput, channel);
+        if (channelMessageCounts.find(channel.id) != channelMessageCounts.end()) {
+          write(fileOutput, channel);
+        }
       }
     }
 
@@ -425,7 +444,7 @@ void McapWriter::close() {
     if (!options_.noSummaryOffsets) {
       // Write summary offset records
       summaryOffsetStart = fileOutput.size();
-      if (!options_.noRepeatedSchemas && !schemas_.empty()) {
+      if (!options_.noRepeatedSchemas && !writtenSchemas_.empty()) {
         write(fileOutput, SummaryOffset{OpCode::Schema, schemaStart, channelStart - schemaStart});
       }
       if (!options_.noRepeatedChannels && !channels_.empty()) {
@@ -469,6 +488,9 @@ void McapWriter::terminate() {
   fileOutput_.reset();
   streamOutput_.reset();
   uncompressedChunk_.reset();
+#ifndef MCAP_COMPRESSION_NO_LZ4
+  lz4Chunk_.reset();
+#endif
 #ifndef MCAP_COMPRESSION_NO_ZSTD
   zstdChunk_.reset();
 #endif
@@ -477,9 +499,15 @@ void McapWriter::terminate() {
   metadataIndex_.clear();
   chunkIndex_.clear();
   statistics_ = {};
+  writtenSchemas_.clear();
   currentMessageIndex_.clear();
   currentChunkStart_ = MaxTime;
   currentChunkEnd_ = 0;
+  compression_ = Compression::None;
+  uncompressedSize_ = 0;
+
+  // Don't clear schemas or channels, those can be re-used between files
+  // Only the channels and schemas actually referenced in the file will be written to it.
 
   opened_ = false;
 }
@@ -536,6 +564,16 @@ Status McapWriter::write(const Message& message) {
     ++statistics_.channelCount;
   }
 
+  // Before writing a message that would overflow the current chunk, close it.
+  auto* chunkWriter = getChunkWriter();
+  if (chunkWriter != nullptr && /* Chunked? */
+      uncompressedSize_ != 0 && /* Current chunk is not empty/new? */
+      9 + getRecordSize(message) + uncompressedSize_ >= chunkSize_ /* Overflowing? */) {
+    auto& fileOutput = *output_;
+    writeChunk(fileOutput, *chunkWriter);
+  }
+
+  // For the chunk-local message index.
   const uint64_t messageOffset = uncompressedSize_;
 
   // Write the message
@@ -554,8 +592,7 @@ Status McapWriter::write(const Message& message) {
     channelMessageCounts[message.channelId] += 1;
   }
 
-  auto* chunkWriter = getChunkWriter();
-  if (chunkWriter) {
+  if (chunkWriter != nullptr) {
     if (!options_.noMessageIndex) {
       // Update the message index
       auto& messageIndex = currentMessageIndex_[message.channelId];
@@ -760,8 +797,10 @@ void McapWriter::writeChunk(IWritable& output, IChunkWriter& chunkData) {
     const uint64_t messageIndexLength = output.size() - messageIndexOffset;
 
     // Fill in the newly created chunk index record. This will be written into
-    // the summary section when close() is called
-    chunkIndexRecord.messageStartTime = currentChunkStart_;
+    // the summary section when close() is called. Note that currentChunkStart_
+    // may still be initialized to MaxTime if this chunk does not contain any
+    // messages.
+    chunkIndexRecord.messageStartTime = currentChunkStart_ == MaxTime ? 0 : currentChunkStart_;
     chunkIndexRecord.messageEndTime = currentChunkEnd_;
     chunkIndexRecord.chunkStartOffset = chunkStartOffset;
     chunkIndexRecord.chunkLength = chunkLength;
@@ -864,8 +903,12 @@ uint64_t McapWriter::write(IWritable& output, const Channel& channel) {
   return 9 + recordSize;
 }
 
+uint64_t McapWriter::getRecordSize(const Message& message) {
+  return 2 + 4 + 8 + 8 + message.dataSize;
+}
+
 uint64_t McapWriter::write(IWritable& output, const Message& message) {
-  const uint64_t recordSize = 2 + 4 + 8 + 8 + message.dataSize;
+  const uint64_t recordSize = getRecordSize(message);
 
   write(output, OpCode::Message);
   write(output, recordSize);
@@ -920,6 +963,7 @@ uint64_t McapWriter::write(IWritable& output, const Chunk& chunk) {
   write(output, chunk.compression);
   write(output, chunk.compressedSize);
   write(output, chunk.records, chunk.compressedSize);
+  output.flush();
 
   return 9 + recordSize;
 }
