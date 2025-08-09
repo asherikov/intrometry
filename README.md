@@ -77,10 +77,10 @@ class ArilesDebug : public ariles2::DefaultBase
 #include ARILES2_INITIALIZE
 }
 ...
-intrometry::pjmsg_topic::Sink sink;
+intrometry::pjmsg_topic::Sink sink("my_sink");
 ArilesDebug debug;
 ...
-sink.initialize("my_sink");
+sink.initialize();
 sink.assign(debug);
 ...
 for(...)
