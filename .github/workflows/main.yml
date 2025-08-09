@@ -6,14 +6,14 @@ defaults:
 
 jobs:
     spell:
-        runs-on: ubuntu-22.04
+        runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v4
             - run: make install_deps_common
             - run: make spell
 
     jammy_ccws_static:
-        runs-on: ubuntu-22.04
+        runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v4
               with:
@@ -39,7 +39,7 @@ jobs:
             - run: make dep_install PKG=intrometry_pjmsg_topic
             - run: make intrometry BUILD_PROFILE=scan_build
 
-    jammy_ccws_plain:
+    jammy_ccws_plain_22:
         runs-on: ubuntu-22.04
         steps:
             - uses: actions/checkout@v4
@@ -63,8 +63,32 @@ jobs:
             - run: make intrometry
             - run: make test PKG=intrometry_tests
 
+    jammy_ccws_plain_24:
+        runs-on: ubuntu-24.04
+        steps:
+            - uses: actions/checkout@v4
+              with:
+                repository: asherikov/ccws
+            - uses: actions/checkout@v4
+              with:
+                path: src/intrometry
+            - uses: actions/checkout@v4
+              with:
+                repository: asherikov/thread_supervisor
+                path: src/thread_supervisor
+            - uses: actions/checkout@v4
+              with:
+                repository: asherikov/ariles
+                ref: pkg_ws_2
+                path: src/ariles
+            - run: make bp_install_build BUILD_PROFILE=reldebug
+            - run: make dep_install PKG=intrometry_pjmsg_mcap
+            - run: make dep_install PKG=intrometry_pjmsg_topic
+            - run: make intrometry
+            - run: make test PKG=intrometry_tests
+
     jammy_ccws_threadsan:
-        runs-on: ubuntu-22.04
+        runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v4
               with:
@@ -88,7 +112,7 @@ jobs:
             - run: make test PKG=intrometry_tests BUILD_PROFILE=thread_sanitizer
 
     jammy_ccws_asan:
-        runs-on: ubuntu-22.04
+        runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v4
               with:
