@@ -111,7 +111,7 @@ namespace intrometry
         std::shared_ptr<t_Implementation> pimpl_;
 
     public:
-        SinkPIMPLBase(const t_Parameters &parameters = t_Parameters()) : parameters_(parameters)  // NOLINT
+        explicit SinkPIMPLBase(const t_Parameters &parameters = t_Parameters()) : parameters_(parameters)
         {
         }
 

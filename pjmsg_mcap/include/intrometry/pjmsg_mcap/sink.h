@@ -36,8 +36,10 @@ namespace intrometry::pjmsg_mcap
 
 
         public:
+            // cppcheck-suppress noExplicitConstructor
             Parameters(const std::string &id = "");  // NOLINT
-            Parameters(const char *id = "");         // NOLINT
+            // cppcheck-suppress noExplicitConstructor
+            Parameters(const char *id = "");  // NOLINT
 
             Parameters &rate(const std::size_t value);
             Parameters &id(const std::string &value);
@@ -54,10 +56,10 @@ namespace intrometry::pjmsg_mcap
     class INTROMETRY_PUBLIC Sink : public SinkPIMPLBase<sink::Parameters, sink::Implementation>
     {
     public:
-        using SinkPIMPLBase::SinkPIMPLBase;
         using SinkPIMPLBase::assign;
-        using SinkPIMPLBase::write;
         using SinkPIMPLBase::retract;
+        using SinkPIMPLBase::SinkPIMPLBase;
+        using SinkPIMPLBase::write;
         ~Sink();
 
         bool initialize();

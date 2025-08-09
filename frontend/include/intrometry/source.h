@@ -40,7 +40,7 @@ namespace intrometry
             bool persistent_structure_;
 
         public:
-            Parameters(const bool persistent_structure = false)  // NOLINT
+            explicit Parameters(const bool persistent_structure = false)
             {
                 persistent_structure_ = persistent_structure;
             }
