@@ -206,7 +206,7 @@ namespace
     class WriterWrapper
     {
     public:
-        const std::string id_;
+        const std::string id_;  // NOLINT
         ariles2::namevalue2::Writer::Parameters writer_parameters_;
         std::shared_ptr<NameValueContainer> data_;
         ariles2::namevalue2::Writer writer_;

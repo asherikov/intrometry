@@ -92,7 +92,7 @@ namespace
     class WriterWrapper
     {
     public:
-        const std::string id_;
+        const std::string id_;  // NOLINT
         ariles2::namevalue2::Writer::Parameters writer_parameters_;
         std::shared_ptr<NameValueContainer> data_;
         ariles2::namevalue2::Writer writer_;
@@ -194,7 +194,7 @@ namespace intrometry::pjmsg_topic
             {
                 // RCLCPP_*_STREAM uses stringstream anyway
                 std::stringstream strstream;  // NOLINT clang-tidy wants this const
-                (strstream << ... << args);
+                (strstream << ... << std::forward<t_Args>(args));
                 RCLCPP_WARN(node_->get_logger(), "%s", strstream.str().c_str());
             }
         }

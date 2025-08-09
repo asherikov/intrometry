@@ -113,7 +113,7 @@ namespace intrometry::backend
     class RateTimer::Implementation
     {
     public:
-        const std::chrono::nanoseconds step_;
+        const std::chrono::nanoseconds step_;  // NOLINT
         std::chrono::time_point<std::chrono::steady_clock> time_threshold_;
 
     public:

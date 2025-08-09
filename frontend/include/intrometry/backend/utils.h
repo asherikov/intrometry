@@ -28,7 +28,7 @@ namespace intrometry::backend
     std::string str_concat(t_String &&...strings)
     {
         std::string result;
-        (result += ... += strings);
+        (result += ... += std::forward<t_String>(strings));
         return result;
     }
 
