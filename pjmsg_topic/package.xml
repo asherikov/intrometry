@@ -18,7 +18,6 @@
     <build_depend>plotjuggler_msgs</build_depend>
     <build_depend>ariles2_namevalue2_ws</build_depend>
     <exec_depend>rclcpp</exec_depend>
-    <exec_depend>thread_supervisor</exec_depend>
     <exec_depend>plotjuggler_msgs</exec_depend>
     <exec_depend>ariles2_namevalue2_ws</exec_depend>
 </package>
