@@ -51,8 +51,9 @@ target_include_directories(${PROJECT_NAME} PUBLIC
     $<INSTALL_INTERFACE:include>
 )
 target_include_directories(${PROJECT_NAME}
-    SYSTEM PRIVATE src/3rdparty/mcap/cpp/mcap/include/
-    SYSTEM PRIVATE src/3rdparty/generated/
+    SYSTEM
+    PRIVATE src/3rdparty/mcap/cpp/mcap/include/
+    PRIVATE src/3rdparty/generated/
 )
 set_property(TARGET ${PROJECT_NAME} PROPERTY INTERFACE_${PROJECT_NAME}_MAJOR_VERSION ${PROJECT_VERSION_MAJOR})
 set_property(TARGET ${PROJECT_NAME} APPEND PROPERTY COMPATIBLE_INTERFACE_STRING ${PROJECT_VERSION_MAJOR})
