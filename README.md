@@ -204,6 +204,7 @@ Dependencies
 
 - `thread_supervisor` <https://github.com/asherikov/thread_supervisor>
 - `ariles` (`ariles2_namevalue2_ws`) <https://github.com/asherikov/ariles/tree/pkg_ws_2>
+- `pjmsg_mcap_wrapper` <https://github.com/asherikov/pjmsg_mcap_wrapper>
 
 
 TODO

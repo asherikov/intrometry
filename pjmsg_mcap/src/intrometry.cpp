@@ -10,22 +10,11 @@
 #include <ariles2/visitors/namevalue2.h>
 #include <thread_supervisor/supervisor.h>
 
-#include "HeaderCdrAux.ipp"
-#include "StatisticsNamesCdrAux.ipp"
-#include "StatisticsValuesCdrAux.ipp"
-#include "TimeCdrAux.ipp"
-
-#define MCAP_IMPLEMENTATION
-#define MCAP_COMPRESSION_NO_LZ4
-#define MCAP_COMPRESSION_NO_ZSTD
-#define MCAP_PUBLIC __attribute__((visibility("hidden")))
-#include <mcap/writer.hpp>
+#include <pjmsg_mcap_wrapper/all.h>
 
 #include "intrometry/intrometry.h"
 #include "intrometry/backend/utils.h"
 #include "intrometry/pjmsg_mcap/sink.h"
-
-#include "messages.h"
 
 
 namespace
@@ -33,173 +22,54 @@ namespace
     class NameValueContainer : public ariles2::namevalue2::NameValueContainer
     {
     public:
-        plotjuggler_msgs::msg::StatisticsNames names_;
-        plotjuggler_msgs::msg::StatisticsValues values_;
         std::size_t previous_size_ = 0;
         bool new_names_version_ = false;
+        pjmsg_mcap_wrapper::Message message_;
 
 
     public:  // ariles stuff
         void finalize(const bool persistent_structure, const uint64_t timestamp, uint32_t &names_version)
         {
-            const int32_t sec = static_cast<int32_t>(timestamp / std::nano::den);
-            const uint32_t nanosec = timestamp % std::nano::den;
-
-            names_.header().stamp().sec(sec);
-            values_.header().stamp().sec(sec);
-            names_.header().stamp().nanosec(nanosec);
-            values_.header().stamp().nanosec(nanosec);
+            message_.setStamp(timestamp);
 
             // we cannot know for sure that the names have not changed
             // without comparing all the names, do our best
-            if (not persistent_structure or previous_size_ != size())
+            if (not persistent_structure or previous_size_ != message_.size())
             {
-                names_.names_version(names_version);
-                values_.names_version(names_version);
-                new_names_version_ = true;
+                message_.setVersion(names_version);
                 ++names_version;
             }
 
-            previous_size_ = size();
+            previous_size_ = message_.size();
         }
 
         std::string &name(const std::size_t index)
         {
-            return (names_.names()[index]);
+            return (message_.name(index));
         }
+
         double &value(const std::size_t index)
         {
-            return (values_.values()[index]);
+            return (message_.value(index));
         }
 
         void reserve(const std::size_t size)
         {
-            names_.names().reserve(size);
-            values_.values().reserve(size);
+            message_.reserve(size);
         }
-        [[nodiscard]] std::size_t size() const
-        {
-            return (names_.names().size());
-        }
+
         void resize(const std::size_t size)
         {
-            names_.names().resize(size);
-            values_.values().resize(size);
+            message_.resize(size);
+        }
+
+        [[nodiscard]] std::size_t size() const
+        {
+            return (message_.size());
         }
     };
 }  // namespace
 
-
-namespace
-{
-    class McapCDRWriter
-    {
-    protected:
-        template <class t_Message>
-        class Channel
-        {
-        protected:
-            mcap::Message message_;
-            eprosima::fastcdr::CdrSizeCalculator cdr_size_calculator_;
-
-        protected:
-            uint32_t getSize(const t_Message &message)
-            {
-                size_t current_alignment{ 0 };
-                return (cdr_size_calculator_.calculate_serialized_size(message, current_alignment)
-                        + 4u /*encapsulation*/);
-            }
-
-        public:
-            Channel() : cdr_size_calculator_(eprosima::fastcdr::CdrVersion::XCDRv1)
-            {
-            }
-
-            void initialize(mcap::McapWriter &writer, const std::string_view &msg_topic)
-            {
-                mcap::Schema schema(
-                        intrometry_private::pjmsg_mcap::Message<t_Message>::type,
-                        "ros2msg",
-                        intrometry_private::pjmsg_mcap::Message<t_Message>::schema);
-                writer.addSchema(schema);
-
-                mcap::Channel channel(msg_topic, "ros2msg", schema.id);
-                writer.addChannel(channel);
-
-                message_.channelId = channel.id;
-            }
-
-            void write(mcap::McapWriter &writer, std::vector<std::byte> &buffer, const t_Message &message)
-            {
-                buffer.resize(getSize(message));
-                message_.data = buffer.data();
-
-                {
-                    eprosima::fastcdr::FastBuffer cdr_buffer(
-                            reinterpret_cast<char *>(buffer.data()), buffer.size());  // NOLINT
-                    eprosima::fastcdr::Cdr ser(
-                            cdr_buffer, eprosima::fastcdr::Cdr::DEFAULT_ENDIAN, eprosima::fastcdr::CdrVersion::XCDRv1);
-                    ser.set_encoding_flag(eprosima::fastcdr::EncodingAlgorithmFlag::PLAIN_CDR);
-
-                    ser.serialize_encapsulation();
-                    ser << message;
-                    ser.set_dds_cdr_options({ 0, 0 });
-
-                    message_.dataSize = ser.get_serialized_data_length();
-                }
-
-                message_.logTime = intrometry::backend::now();
-                message_.publishTime = message_.logTime;
-
-
-                const mcap::Status res = writer.write(message_);
-                if (not res.ok())
-                {
-                    throw std::runtime_error(
-                            intrometry::backend::str_concat("Failed to write a message: ", res.message));
-                }
-            }
-        };
-
-    public:
-        std::tuple<Channel<plotjuggler_msgs::msg::StatisticsNames>, Channel<plotjuggler_msgs::msg::StatisticsValues>>
-                channels_;
-
-        std::vector<std::byte> buffer_;
-        mcap::McapWriter writer_;
-
-    public:
-        ~McapCDRWriter()
-        {
-            writer_.close();
-        }
-
-        void initialize(const std::filesystem::path &filename, const std::string &topic_prefix)
-        {
-            {
-                const mcap::McapWriterOptions options = mcap::McapWriterOptions("ros2msg");
-                const mcap::Status res = writer_.open(filename.native(), options);
-                if (not res.ok())
-                {
-                    throw std::runtime_error(intrometry::backend::str_concat(
-                            "Failed to open ", filename.native(), " for writing: ", res.message));
-                }
-            }
-
-            std::get<Channel<plotjuggler_msgs::msg::StatisticsNames>>(channels_).initialize(
-                    writer_, intrometry::backend::str_concat(topic_prefix, "/names"));
-
-            std::get<Channel<plotjuggler_msgs::msg::StatisticsValues>>(channels_).initialize(
-                    writer_, intrometry::backend::str_concat(topic_prefix, "/values"));
-        }
-
-        template <class t_Message>
-        void write(const t_Message &message)
-        {
-            std::get<Channel<t_Message>>(channels_).write(writer_, buffer_, message);
-        }
-    };
-}  // namespace
 
 namespace
 {
@@ -234,17 +104,11 @@ namespace
             serialized_ = true;  // do not serialize on assignment
         }
 
-        void serialize(McapCDRWriter &mcap_writer)
+        void serialize(pjmsg_mcap_wrapper::Writer &mcap_writer)
         {
             if (not serialized_)
             {
-                if (data_->new_names_version_)
-                {
-                    mcap_writer.write(data_->names_);
-                    data_->new_names_version_ = false;
-                }
-
-                mcap_writer.write(data_->values_);
+                mcap_writer.write(data_->message_);
                 serialized_ = true;
             }
         }
@@ -298,7 +162,7 @@ namespace intrometry::pjmsg_mcap::sink
     class Implementation
     {
     protected:
-        McapCDRWriter mcap_writer_;
+        pjmsg_mcap_wrapper::Writer mcap_writer_;
 
     public:
         uint32_t names_version_;

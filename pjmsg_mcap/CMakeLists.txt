@@ -25,9 +25,8 @@ set(CMAKE_VISIBILITY_INLINES_HIDDEN hidden)
 find_package(intrometry_frontend REQUIRED)
 find_package(thread_supervisor REQUIRED)
 find_package(ariles2-namevalue2 REQUIRED)
+find_package(pjmsg_mcap_wrapper REQUIRED)
 
-
-add_subdirectory(src/3rdparty/)
 
 if(CCWS_CLANG_TIDY)
     set(CMAKE_CXX_CLANG_TIDY "${CCWS_CLANG_TIDY}" CACHE STRING "" FORCE)
@@ -44,16 +43,11 @@ target_link_libraries(${PROJECT_NAME}
     PRIVATE intrometry::backend
     PRIVATE ariles2::namevalue2
     PRIVATE thread_supervisor::thread_supervisor
-    PRIVATE fastcdr
+    PRIVATE pjmsg_mcap_wrapper::pjmsg_mcap_wrapper
 )
 target_include_directories(${PROJECT_NAME} PUBLIC
     $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>
-)
-target_include_directories(${PROJECT_NAME}
-    SYSTEM
-    PRIVATE src/3rdparty/mcap/cpp/mcap/include/
-    PRIVATE src/3rdparty/generated/
 )
 set_property(TARGET ${PROJECT_NAME} PROPERTY INTERFACE_${PROJECT_NAME}_MAJOR_VERSION ${PROJECT_VERSION_MAJOR})
 set_property(TARGET ${PROJECT_NAME} APPEND PROPERTY COMPATIBLE_INTERFACE_STRING ${PROJECT_VERSION_MAJOR})
@@ -102,7 +96,8 @@ file(
     "include(\"\${CMAKE_CURRENT_LIST_DIR}/${PROJECT_NAME}Targets.cmake\")\n"
     "include(CMakeFindDependencyMacro)\n"
     "find_dependency(ariles2_namevalue2_ws)\n"
-    "find_dependency(intrometry_frontend)"
+    "find_dependency(intrometry_frontend)\n"
+    "find_dependency(pjmsg_mcap_wrapper)"
 )
 
 install(

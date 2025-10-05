@@ -16,4 +16,5 @@
     <build_depend>thread_supervisor</build_depend>
     <build_depend>ariles2_namevalue2_ws</build_depend>
     <exec_depend>ariles2_namevalue2_ws</exec_depend>
+    <depend>pjmsg_mcap_wrapper</depend>
 </package>
