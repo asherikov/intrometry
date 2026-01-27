@@ -11,69 +11,109 @@
 
 namespace
 {
-    class PjmsgMcapIntrometryFixture : public ::testing::Test
+    class PjmsgMcapRaw
     {
     public:
         intrometry::pjmsg_mcap::Sink intrometry_sink_;
 
     public:
-        PjmsgMcapIntrometryFixture() : intrometry_sink_("IntrometryFixture")
+        PjmsgMcapRaw() : intrometry_sink_("IntrometryFixtureRaw")
         {
             intrometry_sink_.initialize();
         }
     };
+
+    class PjmsgMcapCompressed
+    {
+    public:
+        intrometry::pjmsg_mcap::Sink intrometry_sink_;
+
+    public:
+        PjmsgMcapCompressed()
+          : intrometry_sink_(intrometry::pjmsg_mcap::sink::Parameters("IntrometryFixtureCompressed")
+                                     .compression(intrometry::pjmsg_mcap::sink::Parameters::Compression::ZSTD))
+        {
+            intrometry_sink_.initialize();
+        }
+    };
+
+    template <class t_Base>
+    class PjmsgMcapIntrometryFixture : public ::testing::Test, public t_Base
+    {
+    public:
+        using t_Base::t_Base;
+    };
+
+    using PjmsgMcapIntrometryFixtureTypes = ::testing::Types<PjmsgMcapRaw, PjmsgMcapCompressed>;
+    class NameGenerator
+    {
+    public:
+        template <typename T>
+        static std::string GetName(int /*unused*/)
+        {
+            if constexpr (std::is_same_v<T, PjmsgMcapRaw>)
+            {
+                return "PjmsgMcapRaw";
+            }
+            if constexpr (std::is_same_v<T, PjmsgMcapCompressed>)
+            {
+                return "PjmsgMcapCompressed";
+            }
+        }
+    };
+    TYPED_TEST_SUITE(PjmsgMcapIntrometryFixture, PjmsgMcapIntrometryFixtureTypes, NameGenerator);
 }  // namespace
 
 
-TEST_F(PjmsgMcapIntrometryFixture, ArilesDynamic)
+TYPED_TEST(PjmsgMcapIntrometryFixture, ArilesDynamic)
 {
     intrometry_tests::ArilesDebug debug;
-    intrometry_sink_.assign(debug);
+    this->intrometry_sink_.assign(debug);
 
     for (debug.size_ = 0; debug.size_ < 5; ++debug.size_)
     {
-        intrometry_sink_.write(debug);
+        this->intrometry_sink_.write(debug);
         std::this_thread::sleep_for(std::chrono::milliseconds(50));
     }
 
     std::this_thread::sleep_for(std::chrono::milliseconds(500));
-    intrometry_sink_.retract(debug);
+    this->intrometry_sink_.retract(debug);
     ASSERT_TRUE(true);
 }
 
 
-TEST_F(PjmsgMcapIntrometryFixture, ArilesPersistent)
+TYPED_TEST(PjmsgMcapIntrometryFixture, ArilesPersistent)
 {
     intrometry_tests::ArilesDebug debug{};
-    intrometry_sink_.assign(debug, intrometry::Source::Parameters(/*persistent_structure=*/true));
+    this->intrometry_sink_.assign(debug, intrometry::Source::Parameters(/*persistent_structure=*/true));
     debug.vec_ = { 3.4, 2.2, 2.1 };
 
     for (std::size_t i = 0; i < 3; ++i)
     {
-        intrometry_sink_.write(debug);
+        this->intrometry_sink_.write(debug);
         std::this_thread::sleep_for(std::chrono::milliseconds(50));
     }
 
     std::this_thread::sleep_for(std::chrono::milliseconds(500));
-    intrometry_sink_.retract(debug);
+    this->intrometry_sink_.retract(debug);
     ASSERT_TRUE(true);
 }
 
 
-TEST_F(PjmsgMcapIntrometryFixture, MultipleSources)
+TYPED_TEST(PjmsgMcapIntrometryFixture, MultipleSources)
 {
     const intrometry_tests::ArilesDebug debug0{};
     const intrometry_tests::ArilesDebug1 debug1{};
-    intrometry_sink_.assignBatch(intrometry::Source::Parameters(/*persistent_structure=*/true), debug0, debug1);
+    this->intrometry_sink_.assignBatch(intrometry::Source::Parameters(/*persistent_structure=*/true), debug0, debug1);
 
     for (std::size_t i = 0; i < 3; ++i)
     {
-        intrometry_sink_.writeBatch(0, debug0, debug1);
+        this->intrometry_sink_.writeBatch(0, debug0, debug1);
         std::this_thread::sleep_for(std::chrono::milliseconds(50));
     }
 
     std::this_thread::sleep_for(std::chrono::milliseconds(500));
-    intrometry_sink_.retractBatch(debug0, debug1);
+    this->intrometry_sink_.retractBatch(debug0, debug1);
     ASSERT_TRUE(true);
 }
 
