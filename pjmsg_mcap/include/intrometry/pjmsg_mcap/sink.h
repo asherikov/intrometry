@@ -34,6 +34,12 @@ namespace intrometry::pjmsg_mcap
             /// output directory
             std::filesystem::path directory_;
 
+            enum class INTROMETRY_PUBLIC Compression // NOLINT
+            {
+                NONE,
+                ZSTD
+            } compression_;
+
 
         public:
             // cppcheck-suppress noExplicitConstructor
@@ -44,6 +50,7 @@ namespace intrometry::pjmsg_mcap
             Parameters &rate(const std::size_t value);
             Parameters &id(const std::string &value);
             Parameters &directory(const std::filesystem::path &value);
+            Parameters &compression(const Compression value);
         };
 
         class Implementation;

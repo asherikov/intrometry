@@ -129,12 +129,14 @@ namespace intrometry::pjmsg_mcap::sink
     {
         rate_ = 500;
         id_ = id;
+        compression_ = Compression::NONE;
     }
 
     Parameters::Parameters(const char *id)
     {
         rate_ = 500;
         id_ = id;
+        compression_ = Compression::NONE;
     }
 
     Parameters &Parameters::rate(const std::size_t value)
@@ -154,6 +156,12 @@ namespace intrometry::pjmsg_mcap::sink
         directory_ = value;
         return (*this);
     }
+
+    Parameters &Parameters::compression(const Compression value)
+    {
+        compression_ = value;
+        return (*this);
+    }
 }  // namespace intrometry::pjmsg_mcap::sink
 
 
@@ -171,7 +179,11 @@ namespace intrometry::pjmsg_mcap::sink
         tut::thread::Supervisor<> thread_supervisor_;
 
     public:
-        Implementation(const std::filesystem::path &directory, const std::string &sink_id, const std::size_t rate)
+        Implementation(
+                const std::filesystem::path &directory,
+                const std::string &sink_id,
+                const std::size_t rate,
+                const Parameters::Compression compression)
         {
             names_version_ = intrometry::backend::getRandomUInt32();
 
@@ -193,7 +205,13 @@ namespace intrometry::pjmsg_mcap::sink
                                                            intrometry::backend::getDateString(),
                                                            ".mcap");
 
-            mcap_writer_.initialize(filename, topic_prefix);
+            // Create writer parameters with the specified compression
+            pjmsg_mcap_wrapper::Writer::Parameters writer_params;
+            if (Parameters::Compression::ZSTD == compression)
+            {
+                writer_params.compression_ = pjmsg_mcap_wrapper::Writer::Parameters::Compression::ZSTD;
+            }
+            mcap_writer_.initialize(filename, topic_prefix, writer_params);
 
             thread_supervisor_.add(
                     tut::thread::Parameters(
@@ -247,7 +265,7 @@ namespace intrometry::pjmsg_mcap
         {
             return (false);
         }
-        make_pimpl(parameters_.directory_, parameters_.id_, parameters_.rate_);
+        make_pimpl(parameters_.directory_, parameters_.id_, parameters_.rate_, parameters_.compression_);
         return (true);
     }
 
