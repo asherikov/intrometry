@@ -10,7 +10,7 @@
 #include <ariles2/visitors/namevalue2.h>
 #include <thread_supervisor/supervisor.h>
 
-#include <pjmsg_mcap_wrapper/all.h>
+#include <pjmsg_mcap_wrapper/writer.h>
 
 #include "intrometry/intrometry.h"
 #include "intrometry/backend/utils.h"

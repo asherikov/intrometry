@@ -40,6 +40,8 @@ namespace intrometry
          * definition to avoid naming collisions.
          *
          * @note Does nothing if initialization failed.
+         * @todo Would be convenient to return an iterator, but iterators of
+         * underlying std::unordered_map may get invalidated on insertion.
          */
         void assign(const ariles2::DefaultBase &source, const Source::Parameters &parameters = Source::Parameters())
         {
