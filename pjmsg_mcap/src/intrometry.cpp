@@ -200,9 +200,9 @@ namespace intrometry::pjmsg_mcap::sink
                                                    / intrometry::backend::str_concat(
                                                            node_id,
                                                            node_id.empty() ? "" : "_",
-                                                           random_id,
-                                                           "_",
                                                            intrometry::backend::getDateString(),
+                                                           "_",
+                                                           random_id,
                                                            ".mcap");
 
             // Create writer parameters with the specified compression
