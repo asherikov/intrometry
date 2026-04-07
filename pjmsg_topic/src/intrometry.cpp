@@ -7,6 +7,7 @@
 */
 
 #include <unordered_map>
+#include <atomic>
 
 #include <ariles2/visitors/namevalue2.h>
 #include <thread_supervisor/supervisor.h>
@@ -42,7 +43,7 @@ namespace
         bool new_names_version_ = false;
 
     public:  // ariles stuff
-        void finalize(const bool persistent_structure, const rclcpp::Time &timestamp, uint32_t &names_version)
+        void finalize(const bool persistent_structure, const rclcpp::Time &timestamp, std::atomic<uint32_t> &names_version)
         {
             names_.header.stamp = timestamp;
             values_.header.stamp = timestamp;
@@ -51,10 +52,9 @@ namespace
             // without comparing all the names, do our best
             if (not persistent_structure or previous_size_ != size())
             {
-                names_.names_version = names_version;
-                values_.names_version = names_version;
+                names_.names_version = names_version.fetch_add(1);
+                values_.names_version = names_.names_version;
                 new_names_version_ = true;
-                ++names_version;
             }
 
             previous_size_ = size();
@@ -105,7 +105,7 @@ namespace
                 const ariles2::DefaultBase &source,
                 std::string id,
                 const bool persistent_structure,
-                uint32_t &names_version)
+                std::atomic<uint32_t> &names_version)
           : id_(std::move(id)), data_(std::make_shared<NameValueContainer>()), writer_(data_)
         {
             writer_parameters_ = writer_.getDefaultParameters();
@@ -137,7 +137,7 @@ namespace
         }
 
 
-        void write(const ariles2::DefaultBase &source, const rclcpp::Time &timestamp, uint32_t &names_version)
+        void write(const ariles2::DefaultBase &source, const rclcpp::Time &timestamp, std::atomic<uint32_t> &names_version)
         {
             ariles2::apply(writer_, source, id_);
             data_->finalize(writer_parameters_.persistent_structure_, timestamp, names_version);
@@ -219,7 +219,7 @@ namespace intrometry::pjmsg_topic
             ValuesPublisherPtr values_publisher_;
 
         public:
-            uint32_t names_version_;
+            std::atomic<uint32_t> names_version_;
 
             intrometry::backend::SourceContainer<WriterWrapper> sources_;
             tut::thread::Supervisor<ROSLogger> thread_supervisor_;
