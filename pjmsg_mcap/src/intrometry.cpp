@@ -8,6 +8,7 @@
 
 
 #include <ariles2/visitors/namevalue2.h>
+#include <atomic>
 #include <thread_supervisor/supervisor.h>
 
 #include <pjmsg_mcap_wrapper/writer.h>
@@ -28,7 +29,7 @@ namespace
 
 
     public:  // ariles stuff
-        void finalize(const bool persistent_structure, const uint64_t timestamp, uint32_t &names_version)
+        void finalize(const bool persistent_structure, const uint64_t timestamp, std::atomic<uint32_t> &names_version)
         {
             message_.setStamp(timestamp);
 
@@ -36,8 +37,9 @@ namespace
             // without comparing all the names, do our best
             if (not persistent_structure or previous_size_ != message_.size())
             {
-                message_.setVersion(names_version);
-                ++names_version;
+                // fetch_add atomically returns the old value and increments,
+                // preventing concurrent writes from getting the same version.
+                message_.setVersion(names_version.fetch_add(1));
             }
 
             previous_size_ = message_.size();
@@ -88,7 +90,7 @@ namespace
                 const ariles2::DefaultBase &source,
                 std::string id,
                 const bool persistent_structure,
-                uint32_t &names_version)
+                std::atomic<uint32_t> &names_version)
           : id_(std::move(id)), data_(std::make_shared<NameValueContainer>()), writer_(data_)
         {
             writer_parameters_ = writer_.getDefaultParameters();
@@ -113,7 +115,7 @@ namespace
             }
         }
 
-        void write(const ariles2::DefaultBase &source, const uint64_t timestamp, uint32_t &names_version)
+        void write(const ariles2::DefaultBase &source, const uint64_t timestamp, std::atomic<uint32_t> &names_version)
         {
             ariles2::apply(writer_, source, id_);
             data_->finalize(writer_parameters_.persistent_structure_, timestamp, names_version);
@@ -173,7 +175,7 @@ namespace intrometry::pjmsg_mcap::sink
         pjmsg_mcap_wrapper::Writer mcap_writer_;
 
     public:
-        uint32_t names_version_;
+        std::atomic<uint32_t> names_version_;
 
         intrometry::backend::SourceContainer<WriterWrapper> sources_;
         tut::thread::Supervisor<> thread_supervisor_;
