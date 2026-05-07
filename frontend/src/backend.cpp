@@ -94,17 +94,6 @@ namespace intrometry::backend
 
         return (result);
     }
-
-
-    INTROMETRY_HIDDEN std::string getDateString()
-    {
-        const std::time_t date_now = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-        std::stringstream date_stream;
-        // thread-unsafe
-        date_stream << std::put_time(std::gmtime(&date_now), "%Y%m%d_%H%M%S");  // NOLINT
-
-        return (date_stream.str());
-    }
 }  // namespace intrometry::backend
 
 
@@ -144,5 +133,49 @@ namespace intrometry::backend
         const std::chrono::nanoseconds time_diff = std::chrono::steady_clock::now() - pimpl_->time_threshold_;
         pimpl_->time_threshold_ += (time_diff / pimpl_->step_ + 1) * pimpl_->step_;
         std::this_thread::sleep_until(pimpl_->time_threshold_);
+    }
+}  // namespace intrometry::backend
+
+
+namespace intrometry::backend
+{
+    std::size_t SourceContainerBase::Hasher::operator()(const Key &key) const
+    {
+        std::size_t result = std::hash<std::type_index>{}(key.first);
+        if (not key.second.empty())
+        {
+            result ^= std::hash<std::string>{}(key.second)           // NOLINT
+                      + 0x9e3779b9 + (result << 6) + (result >> 2);  // NOLINT
+        }
+        return (result);
+    }
+
+    /// @todo requires string copy
+    SourceContainerBase::Key SourceContainerBase::getKey(
+            const std::string &id,
+            const ariles2::DefaultBase &source)
+    {
+        // source.arilesDefaultID()
+        // this is redundant and less reliable than type_index
+        // since it is provided by the user
+
+        // id
+        // this is also provided by the user and is also unreliable,
+        // but in general provides extra information than type_index
+        // and should be added to hash
+        return { std::type_index(typeid(source)), id };
+    }
+
+    std::string SourceContainerBase::getUniqueId(const std::string &id)
+    {
+        const typename CollisionMap::iterator collision_counter_it = collision_counters_.find(id);
+        if (collision_counters_.end() == collision_counter_it)
+        {
+            collision_counters_[id] = 0;
+            return (id);
+        }
+
+        ++collision_counter_it->second;
+        return (str_concat(id, "_intrometry", std::to_string(collision_counter_it->second)));
     }
 }  // namespace intrometry::backend

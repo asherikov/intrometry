@@ -20,6 +20,17 @@
 
 namespace
 {
+    std::string getDateString()
+    {
+        const std::time_t date_now = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+        std::stringstream date_stream;
+        // thread-unsafe
+        date_stream << std::put_time(std::gmtime(&date_now), "%Y%m%d_%H%M%S");  // NOLINT
+
+        return (date_stream.str());
+    }
+
+
     class NameValueContainer : public ariles2::namevalue2::NameValueContainer
     {
     public:
@@ -198,14 +209,10 @@ namespace intrometry::pjmsg_mcap::sink
             {
                 std::filesystem::create_directories(directory);
             }
-            const std::filesystem::path filename = directory
-                                                   / intrometry::backend::str_concat(
-                                                           node_id,
-                                                           node_id.empty() ? "" : "_",
-                                                           intrometry::backend::getDateString(),
-                                                           "_",
-                                                           random_id,
-                                                           ".mcap");
+            const std::filesystem::path filename =
+                    directory
+                    / intrometry::backend::str_concat(
+                            node_id, node_id.empty() ? "" : "_", getDateString(), "_", random_id, ".mcap");
 
             // Create writer parameters with the specified compression
             pjmsg_mcap_wrapper::Writer::Parameters writer_params;
@@ -241,7 +248,7 @@ namespace intrometry::pjmsg_mcap::sink
 
                 while (not thread_supervisor_.isInterrupted())
                 {
-                    sources_.tryVisit([this](WriterWrapper &writer) { writer.serialize(mcap_writer_); });
+                    sources_.tryFlush([this](WriterWrapper &writer) { writer.serialize(mcap_writer_); });
 
                     timer.step();
                 }
@@ -294,10 +301,11 @@ namespace intrometry::pjmsg_mcap
     {
         if (pimpl_)
         {
-            if (not pimpl_->sources_.tryVisit(
+            if (not pimpl_->sources_.tryWrite(
                         id,
                         source,
-                        [this, &source, &timestamp](WriterWrapper &writer) {
+                        [this, &source, &timestamp](WriterWrapper &writer)
+                        {
                             writer.write(
                                     source,
                                     (0 == timestamp) ? intrometry::backend::now() : timestamp,

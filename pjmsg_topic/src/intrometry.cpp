@@ -43,7 +43,10 @@ namespace
         bool new_names_version_ = false;
 
     public:  // ariles stuff
-        void finalize(const bool persistent_structure, const rclcpp::Time &timestamp, std::atomic<uint32_t> &names_version)
+        void finalize(
+                const bool persistent_structure,
+                const rclcpp::Time &timestamp,
+                std::atomic<uint32_t> &names_version)
         {
             names_.header.stamp = timestamp;
             values_.header.stamp = timestamp;
@@ -137,7 +140,10 @@ namespace
         }
 
 
-        void write(const ariles2::DefaultBase &source, const rclcpp::Time &timestamp, std::atomic<uint32_t> &names_version)
+        void write(
+                const ariles2::DefaultBase &source,
+                const rclcpp::Time &timestamp,
+                std::atomic<uint32_t> &names_version)
         {
             ariles2::apply(writer_, source, id_);
             data_->finalize(writer_parameters_.persistent_structure_, timestamp, names_version);
@@ -280,7 +286,7 @@ namespace intrometry::pjmsg_topic
 
                     while (rclcpp::ok() and not thread_supervisor_.isInterrupted())
                     {
-                        sources_.tryVisit([this](WriterWrapper &writer)
+                        sources_.tryFlush([this](WriterWrapper &writer)
                                           { writer.publish(names_publisher_, values_publisher_); });
                         rclcpp::spin_some(node_);
 
@@ -337,7 +343,7 @@ namespace intrometry::pjmsg_topic
     {
         if (pimpl_)
         {
-            if (not pimpl_->sources_.tryVisit(
+            if (not pimpl_->sources_.tryWrite(
                         id,
                         source,
                         [this, &source, &timestamp](WriterWrapper &writer)

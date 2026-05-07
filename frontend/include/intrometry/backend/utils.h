@@ -37,7 +37,6 @@ namespace intrometry::backend
 
     std::string getRandomId(const std::size_t length);
     std::string normalizeId(const std::string &input_id);
-    std::string getDateString();
 
 
     class INTROMETRY_HIDDEN RateTimer
@@ -57,26 +56,35 @@ namespace intrometry::backend
     };
 
 
-    template <class t_Value>
-    class INTROMETRY_HIDDEN SourceContainer
+    class INTROMETRY_HIDDEN SourceContainerBase
     {
     protected:
         using Key = std::pair<std::type_index, std::string>;
 
         struct Hasher
         {
-            std::size_t operator()(const Key &key) const
-            {
-                std::size_t result = std::hash<std::type_index>{}(key.first);
-                if (not key.second.empty())
-                {
-                    result ^= std::hash<std::string>{}(key.second)           // NOLINT
-                              + 0x9e3779b9 + (result << 6) + (result >> 2);  // NOLINT
-                }
-                return (result);
-            }
+            std::size_t operator()(const Key &key) const;
         };
 
+        using CollisionMap = std::unordered_map<std::string, std::size_t>;
+
+    protected:
+        CollisionMap collision_counters_;
+
+        // additions and removals of sources are exclusive
+        // visits are shared since there are extra locks for each source
+        std::shared_mutex sources_mutex_;
+
+    protected:
+        static Key getKey(const std::string &id, const ariles2::DefaultBase &source);
+        std::string getUniqueId(const std::string &id);
+    };
+
+
+    template <class t_Value>
+    class INTROMETRY_HIDDEN SourceContainer : public SourceContainerBase
+    {
+    protected:
         class SourceWithMutex
         {
         public:
@@ -100,46 +108,12 @@ namespace intrometry::backend
         };
 
         using SourceMap = std::unordered_map<Key, SourceWithMutex, Hasher>;
-        using CollisionMap = std::unordered_map<std::string, std::size_t>;
 
     protected:
         SourceMap sources_;
-        CollisionMap collision_counters_;
-
-        // additions and removals of sources are exclusive
-        // visits are shared since there are extra locks for each source
-        std::shared_mutex sources_mutex_;
-
-    protected:
-        /// @todo requires string copy
-        static Key getKey(const std::string &id, const ariles2::DefaultBase &source)
-        {
-            // source.arilesDefaultID()
-            // this is redundant and less reliable than type_index
-            // since it is provided by the user
-
-            // id
-            // this is also provided by the user and is also unreliable,
-            // but in general provides extra information than type_index
-            // and should be added to hash
-            return { std::type_index(typeid(source)), id };
-        }
-
-        std::string getUniqueId(const std::string &id)
-        {
-            const typename CollisionMap::iterator collision_counter_it = collision_counters_.find(id);
-            if (collision_counters_.end() == collision_counter_it)
-            {
-                collision_counters_[id] = 0;
-                return (id);
-            }
-
-            ++collision_counter_it->second;
-            return (str_concat(id, "_intrometry", std::to_string(collision_counter_it->second)));
-        }
 
     public:
-        void tryVisit(const std::function<void(t_Value &)> visitor)
+        void tryFlush(const std::function<void(t_Value &)> visitor)
         {
             if (sources_mutex_.try_lock_shared())
             {
@@ -171,7 +145,7 @@ namespace intrometry::backend
             sources_.erase(getKey(id, source));
         }
 
-        bool tryVisit(
+        bool tryWrite(
                 const std::string &id,
                 const ariles2::DefaultBase &source,
                 const std::function<void(t_Value &)> visitor)
