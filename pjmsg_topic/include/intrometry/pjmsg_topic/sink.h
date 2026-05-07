@@ -9,6 +9,8 @@
 
 #pragma once
 
+#include <chrono>
+
 #include <intrometry/sink.h>
 #include <intrometry/backend/utils.h>
 
@@ -28,6 +30,13 @@ namespace intrometry::pjmsg_topic
             /// id of the sink, disables publishing if empty
             std::string id_;
 
+            /**
+             * Timeout for locking mutexes when reading/writing data. The
+             * default is 0 and should only be modified if you know what you
+             * are doing.
+             */
+            std::chrono::nanoseconds lock_timeout_;
+
         public:
             // cppcheck-suppress noExplicitConstructor
             Parameters(const std::string &id = "");  // NOLINT
@@ -36,6 +45,7 @@ namespace intrometry::pjmsg_topic
 
             Parameters &rate(const std::size_t value);
             Parameters &id(const std::string &value);
+            Parameters &lock_timeout(const std::chrono::nanoseconds &value);
         };
 
         class Implementation;
