@@ -94,17 +94,6 @@ namespace intrometry::backend
 
         return (result);
     }
-
-
-    INTROMETRY_HIDDEN std::string getDateString()
-    {
-        const std::time_t date_now = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-        std::stringstream date_stream;
-        // thread-unsafe
-        date_stream << std::put_time(std::gmtime(&date_now), "%Y%m%d_%H%M%S");  // NOLINT
-
-        return (date_stream.str());
-    }
 }  // namespace intrometry::backend
 
 

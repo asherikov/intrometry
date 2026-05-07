@@ -9,12 +9,14 @@
 
 #pragma once
 
+#include <chrono>
 #include <memory>
 #include <shared_mutex>
 #include <unordered_map>
 #include <functional>
 #include <typeinfo>
 #include <typeindex>
+#include <mutex>
 
 #include <ariles2/ariles.h>
 
@@ -37,7 +39,6 @@ namespace intrometry::backend
 
     std::string getRandomId(const std::size_t length);
     std::string normalizeId(const std::string &input_id);
-    std::string getDateString();
 
 
     class INTROMETRY_HIDDEN RateTimer
@@ -81,7 +82,7 @@ namespace intrometry::backend
         {
         public:
             t_Value value_;
-            std::mutex mutex_;
+            std::timed_mutex mutex_;
 
         public:
             template <class... t_Args>
@@ -89,9 +90,12 @@ namespace intrometry::backend
             {
             }
 
-            void tryVisit(const std::function<void(t_Value &)> &visitor)
+            void tryVisit(const std::function<void(t_Value &)> &visitor, const std::chrono::nanoseconds &timeout)
             {
-                if (mutex_.try_lock())
+                /// @todo triggers false positive in ThreadSanitizer
+                /// https://github.com/google/sanitizers/issues/1620
+                /// WARNING: ThreadSanitizer: unlock of an unlocked mutex (or by a wrong thread)
+                if (mutex_.try_lock_for(timeout))
                 {
                     visitor(value_);
                     mutex_.unlock();
@@ -108,20 +112,21 @@ namespace intrometry::backend
 
         // additions and removals of sources are exclusive
         // visits are shared since there are extra locks for each source
-        std::shared_mutex sources_mutex_;
+        std::shared_timed_mutex sources_mutex_;
+        std::chrono::nanoseconds lock_timeout_;
 
     protected:
         /// @todo requires string copy
         static Key getKey(const std::string &id, const ariles2::DefaultBase &source)
         {
             // source.arilesDefaultID()
-            // this is redundant and less reliable than type_index
-            // since it is provided by the user
+            // this is redundant and less reliable than type_index since it is
+            // provided by the user
 
             // id
-            // this is also provided by the user and is also unreliable,
-            // but in general provides extra information than type_index
-            // and should be added to hash
+            // this is also provided by the user and is also unreliable, but in
+            // general provides extra information in addition to type_index and
+            // should be added to hash
             return { std::type_index(typeid(source)), id };
         }
 
@@ -139,13 +144,17 @@ namespace intrometry::backend
         }
 
     public:
-        void tryVisit(const std::function<void(t_Value &)> visitor)
+        explicit SourceContainer(const std::chrono::nanoseconds &lock_timeout) : lock_timeout_(lock_timeout)
         {
-            if (sources_mutex_.try_lock_shared())
+        }
+
+        void tryFlush(const std::function<void(t_Value &)> visitor)
+        {
+            if (sources_mutex_.try_lock_shared_for(lock_timeout_))
             {
                 for (std::pair<const Key, SourceWithMutex> &source : sources_)
                 {
-                    source.second.tryVisit(visitor);
+                    source.second.tryVisit(visitor, lock_timeout_);
                 }
 
                 sources_mutex_.unlock();
@@ -155,7 +164,7 @@ namespace intrometry::backend
         template <class... t_Args>
         void tryEmplace(const std::string &id, const ariles2::DefaultBase &source, t_Args &&...args)
         {
-            const std::lock_guard lock(sources_mutex_);
+            const std::unique_lock lock(sources_mutex_);
 
             sources_.try_emplace(
                     getKey(id, source),
@@ -166,17 +175,17 @@ namespace intrometry::backend
 
         void erase(const std::string &id, const ariles2::DefaultBase &source)
         {
-            const std::lock_guard lock(sources_mutex_);
+            const std::unique_lock lock(sources_mutex_);
 
             sources_.erase(getKey(id, source));
         }
 
-        bool tryVisit(
+        bool tryWrite(
                 const std::string &id,
                 const ariles2::DefaultBase &source,
                 const std::function<void(t_Value &)> visitor)
         {
-            if (sources_mutex_.try_lock_shared())
+            if (sources_mutex_.try_lock_shared_for(lock_timeout_))
             {
                 const typename SourceMap::iterator source_it = sources_.find(getKey(id, source));
 
@@ -186,7 +195,7 @@ namespace intrometry::backend
                     return (false);
                 }
 
-                source_it->second.tryVisit(visitor);
+                source_it->second.tryVisit(visitor, lock_timeout_);
                 sources_mutex_.unlock();
             }
             return (true);

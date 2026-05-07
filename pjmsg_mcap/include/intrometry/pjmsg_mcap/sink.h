@@ -9,6 +9,7 @@
 
 #pragma once
 
+#include <chrono>
 #include <filesystem>
 
 #include <intrometry/sink.h>
@@ -40,6 +41,12 @@ namespace intrometry::pjmsg_mcap
                 ZSTD
             } compression_;
 
+            /**
+             * Timeout for locking mutexes when reading/writing data. The
+             * default is 0 and should only be modified if you know what you
+             * are doing.
+             */
+            std::chrono::nanoseconds lock_timeout_;
 
         public:
             // cppcheck-suppress noExplicitConstructor
@@ -51,6 +58,7 @@ namespace intrometry::pjmsg_mcap
             Parameters &id(const std::string &value);
             Parameters &directory(const std::filesystem::path &value);
             Parameters &compression(const Compression value);
+            Parameters &lock_timeout(const std::chrono::nanoseconds &value);
         };
 
         class Implementation;

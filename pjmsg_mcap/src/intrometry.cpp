@@ -20,6 +20,16 @@
 
 namespace
 {
+    std::string getDateString()
+    {
+        const std::time_t date_now = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+        std::stringstream date_stream;
+        // thread-unsafe
+        date_stream << std::put_time(std::gmtime(&date_now), "%Y%m%d_%H%M%S");  // NOLINT
+
+        return (date_stream.str());
+    }
+
     class NameValueContainer : public ariles2::namevalue2::NameValueContainer
     {
     public:
@@ -132,6 +142,7 @@ namespace intrometry::pjmsg_mcap::sink
         rate_ = 500;
         id_ = id;
         compression_ = Compression::NONE;
+        lock_timeout_ = std::chrono::nanoseconds(0);
     }
 
     Parameters::Parameters(const char *id)
@@ -139,6 +150,7 @@ namespace intrometry::pjmsg_mcap::sink
         rate_ = 500;
         id_ = id;
         compression_ = Compression::NONE;
+        lock_timeout_ = std::chrono::nanoseconds(0);
     }
 
     Parameters &Parameters::rate(const std::size_t value)
@@ -164,6 +176,12 @@ namespace intrometry::pjmsg_mcap::sink
         compression_ = value;
         return (*this);
     }
+
+    Parameters &Parameters::lock_timeout(const std::chrono::nanoseconds &value)
+    {
+        lock_timeout_ = value;
+        return (*this);
+    }
 }  // namespace intrometry::pjmsg_mcap::sink
 
 
@@ -185,7 +203,9 @@ namespace intrometry::pjmsg_mcap::sink
                 const std::filesystem::path &directory,
                 const std::string &sink_id,
                 const std::size_t rate,
-                const Parameters::Compression compression)
+                const Parameters::Compression compression,
+                const std::chrono::nanoseconds &lock_timeout)
+          : sources_(lock_timeout)
         {
             names_version_ = intrometry::backend::getRandomUInt32();
 
@@ -198,14 +218,10 @@ namespace intrometry::pjmsg_mcap::sink
             {
                 std::filesystem::create_directories(directory);
             }
-            const std::filesystem::path filename = directory
-                                                   / intrometry::backend::str_concat(
-                                                           node_id,
-                                                           node_id.empty() ? "" : "_",
-                                                           intrometry::backend::getDateString(),
-                                                           "_",
-                                                           random_id,
-                                                           ".mcap");
+            const std::filesystem::path filename =
+                    directory
+                    / intrometry::backend::str_concat(
+                            node_id, node_id.empty() ? "" : "_", getDateString(), "_", random_id, ".mcap");
 
             // Create writer parameters with the specified compression
             pjmsg_mcap_wrapper::Writer::Parameters writer_params;
@@ -241,7 +257,7 @@ namespace intrometry::pjmsg_mcap::sink
 
                 while (not thread_supervisor_.isInterrupted())
                 {
-                    sources_.tryVisit([this](WriterWrapper &writer) { writer.serialize(mcap_writer_); });
+                    sources_.tryFlush([this](WriterWrapper &writer) { writer.serialize(mcap_writer_); });
 
                     timer.step();
                 }
@@ -267,7 +283,12 @@ namespace intrometry::pjmsg_mcap
         {
             return (false);
         }
-        make_pimpl(parameters_.directory_, parameters_.id_, parameters_.rate_, parameters_.compression_);
+        make_pimpl(
+                parameters_.directory_,
+                parameters_.id_,
+                parameters_.rate_,
+                parameters_.compression_,
+                parameters_.lock_timeout_);
         return (true);
     }
 
@@ -294,10 +315,11 @@ namespace intrometry::pjmsg_mcap
     {
         if (pimpl_)
         {
-            if (not pimpl_->sources_.tryVisit(
+            if (not pimpl_->sources_.tryWrite(
                         id,
                         source,
-                        [this, &source, &timestamp](WriterWrapper &writer) {
+                        [this, &source, &timestamp](WriterWrapper &writer)
+                        {
                             writer.write(
                                     source,
                                     (0 == timestamp) ? intrometry::backend::now() : timestamp,

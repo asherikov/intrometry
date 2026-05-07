@@ -43,7 +43,10 @@ namespace
         bool new_names_version_ = false;
 
     public:  // ariles stuff
-        void finalize(const bool persistent_structure, const rclcpp::Time &timestamp, std::atomic<uint32_t> &names_version)
+        void finalize(
+                const bool persistent_structure,
+                const rclcpp::Time &timestamp,
+                std::atomic<uint32_t> &names_version)
         {
             names_.header.stamp = timestamp;
             values_.header.stamp = timestamp;
@@ -137,7 +140,10 @@ namespace
         }
 
 
-        void write(const ariles2::DefaultBase &source, const rclcpp::Time &timestamp, std::atomic<uint32_t> &names_version)
+        void write(
+                const ariles2::DefaultBase &source,
+                const rclcpp::Time &timestamp,
+                std::atomic<uint32_t> &names_version)
         {
             ariles2::apply(writer_, source, id_);
             data_->finalize(writer_parameters_.persistent_structure_, timestamp, names_version);
@@ -152,12 +158,14 @@ namespace intrometry::pjmsg_topic::sink
     {
         rate_ = 500;
         id_ = id;
+        lock_timeout_ = std::chrono::nanoseconds(0);
     }
 
     Parameters::Parameters(const char *id)
     {
         rate_ = 500;
         id_ = id;
+        lock_timeout_ = std::chrono::nanoseconds(0);
     }
 
     Parameters &Parameters::rate(const std::size_t value)
@@ -169,6 +177,12 @@ namespace intrometry::pjmsg_topic::sink
     Parameters &Parameters::id(const std::string &value)
     {
         id_ = value;
+        return (*this);
+    }
+
+    Parameters &Parameters::lock_timeout(const std::chrono::nanoseconds &value)
+    {
+        lock_timeout_ = value;
         return (*this);
     }
 }  // namespace intrometry::pjmsg_topic::sink
@@ -225,7 +239,11 @@ namespace intrometry::pjmsg_topic
             tut::thread::Supervisor<ROSLogger> thread_supervisor_;
 
         public:
-            Implementation(const std::string &sink_id, const std::size_t rate)
+            Implementation(
+                    const std::string &sink_id,
+                    const std::size_t rate,
+                    const std::chrono::nanoseconds &lock_timeout)
+              : sources_(lock_timeout)
             {
                 names_version_ = intrometry::backend::getRandomUInt32();
 
@@ -280,7 +298,7 @@ namespace intrometry::pjmsg_topic
 
                     while (rclcpp::ok() and not thread_supervisor_.isInterrupted())
                     {
-                        sources_.tryVisit([this](WriterWrapper &writer)
+                        sources_.tryFlush([this](WriterWrapper &writer)
                                           { writer.publish(names_publisher_, values_publisher_); });
                         rclcpp::spin_some(node_);
 
@@ -310,7 +328,7 @@ namespace intrometry::pjmsg_topic
         {
             return (false);
         }
-        make_pimpl(parameters_.id_, parameters_.rate_);
+        make_pimpl(parameters_.id_, parameters_.rate_, parameters_.lock_timeout_);
         return (true);
     }
 
@@ -337,7 +355,7 @@ namespace intrometry::pjmsg_topic
     {
         if (pimpl_)
         {
-            if (not pimpl_->sources_.tryVisit(
+            if (not pimpl_->sources_.tryWrite(
                         id,
                         source,
                         [this, &source, &timestamp](WriterWrapper &writer)
