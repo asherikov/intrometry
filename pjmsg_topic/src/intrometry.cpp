@@ -286,12 +286,12 @@ namespace intrometry::pjmsg_topic
 
                     while (rclcpp::ok() and not thread_supervisor_.isInterrupted())
                     {
-                        sources_.tryFlush([this](WriterWrapper &writer)
-                                          { writer.publish(names_publisher_, values_publisher_); });
+                        flush();
                         rclcpp::spin_some(node_);
 
                         timer.step();
                     }
+                    flush();
                 }
                 else
                 {

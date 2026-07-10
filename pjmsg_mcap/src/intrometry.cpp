@@ -248,10 +248,11 @@ namespace intrometry::pjmsg_mcap::sink
 
                 while (not thread_supervisor_.isInterrupted())
                 {
-                    sources_.tryFlush([this](WriterWrapper &writer) { writer.serialize(mcap_writer_); });
+                    flush();
 
                     timer.step();
                 }
+                flush();
             }
             else
             {
