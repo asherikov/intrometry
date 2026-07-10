@@ -118,6 +118,20 @@ TYPED_TEST(PjmsgMcapIntrometryFixture, MultipleSources)
 }
 
 
+TYPED_TEST(PjmsgMcapIntrometryFixture, Flush)
+{
+    intrometry_tests::ArilesDebug debug{};
+    this->intrometry_sink_.assign(debug, intrometry::Source::Parameters(/*persistent_structure=*/true));
+
+    this->intrometry_sink_.write(debug);
+    this->intrometry_sink_.flush();
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    this->intrometry_sink_.retract(debug);
+    ASSERT_TRUE(true);
+}
+
+
 
 int main(int argc, char **argv)
 {

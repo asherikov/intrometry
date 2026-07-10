@@ -64,5 +64,11 @@ namespace intrometry
                     [this, timestamp](auto &&...write_args) { sink_->writeBatch(timestamp, write_args...); },
                     data_);
         }
+
+        /// Force flushing of pending telemetry data
+        void flush()
+        {
+            sink_->flush();
+        }
     };
 }  // namespace intrometry

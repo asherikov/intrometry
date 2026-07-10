@@ -259,6 +259,12 @@ namespace intrometry::pjmsg_mcap::sink
             }
             thread_supervisor_.interrupt();
         }
+
+
+        void flush()
+        {
+            sources_.tryFlush([this](WriterWrapper &writer) { writer.serialize(mcap_writer_); });
+        }
     };
 }  // namespace intrometry::pjmsg_mcap::sink
 
@@ -315,6 +321,15 @@ namespace intrometry::pjmsg_mcap
                 pimpl_->thread_supervisor_.log(
                         "Measurement source handler is not assigned, skipping id: ", source.arilesDefaultID());
             }
+        }
+    }
+
+
+    void Sink::flush()
+    {
+        if (pimpl_)
+        {
+            pimpl_->flush();
         }
     }
 }  // namespace intrometry::pjmsg_mcap

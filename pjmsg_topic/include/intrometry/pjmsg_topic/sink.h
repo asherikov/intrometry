@@ -61,5 +61,6 @@ namespace intrometry::pjmsg_topic
                 const Source::Parameters &parameters = Source::Parameters());
         void retract(const std::string &id, const ariles2::DefaultBase &source);
         void write(const std::string &id, const ariles2::DefaultBase &source, const uint64_t timestamp = 0);
+        void flush();
     };
 }  // namespace intrometry::pjmsg_topic

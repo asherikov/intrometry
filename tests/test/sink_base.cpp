@@ -44,6 +44,19 @@ namespace
             std::this_thread::sleep_for(std::chrono::milliseconds(500));
             sink_->retract(debug);
         }
+
+        void useSinkFlush()
+        {
+            intrometry_tests::ArilesDebug debug;
+            sink_->assign(debug);
+
+            debug.size_ = 3;
+            sink_->write(debug);
+            sink_->flush();
+
+            std::this_thread::sleep_for(std::chrono::milliseconds(500));
+            sink_->retract(debug);
+        }
     };
 }  // namespace
 
@@ -59,6 +72,20 @@ TEST_F(SinkBase, Topic)
 {
     sink_ = sink_topic_;
     useSink();
+    ASSERT_TRUE(true);
+}
+
+TEST_F(SinkBase, MCAPFlush)
+{
+    sink_ = sink_mcap_;
+    useSinkFlush();
+    ASSERT_TRUE(true);
+}
+
+TEST_F(SinkBase, TopicFlush)
+{
+    sink_ = sink_topic_;
+    useSinkFlush();
     ASSERT_TRUE(true);
 }
 

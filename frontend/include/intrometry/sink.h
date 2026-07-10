@@ -76,6 +76,14 @@ namespace intrometry
         }
         virtual void write(const std::string &id, const ariles2::DefaultBase &source, const uint64_t timestamp = 0) = 0;
 
+        /**
+         * Force flushing of pending telemetry data, without waiting for the
+         * next periodic flush.
+         *
+         * @note Does nothing if initialization failed.
+         */
+        virtual void flush() = 0;
+
 
         /// Batch assignment
         template <class... t_Sources>

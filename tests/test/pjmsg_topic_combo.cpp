@@ -47,6 +47,16 @@ TEST_F(PjmsgTopicComboSinkFixture, Simple)
     ASSERT_TRUE(checkReceived());
 }
 
+TEST_F(PjmsgTopicComboSinkFixture, Flush)
+{
+    intrometry_sink_.get<intrometry_tests::ArilesDebug>().size_ = 3;
+    intrometry_sink_.write();
+    intrometry_sink_.flush();
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    ASSERT_TRUE(checkReceived());
+}
+
 TEST_F(PjmsgTopicMultiSinkFixture, Multi)
 {
     MultiPubVec pub_vector;

@@ -77,6 +77,20 @@ TEST_F(PjmsgTopicIntrometryFixture, MultipleSources)
 }
 
 
+TEST_F(PjmsgTopicIntrometryFixture, Flush)
+{
+    intrometry_tests::ArilesDebug debug{};
+    intrometry_sink_.assign(debug, intrometry::Source::Parameters(/*persistent_structure=*/true));
+
+    intrometry_sink_.write(debug);
+    intrometry_sink_.flush();
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    intrometry_sink_.retract(debug);
+    ASSERT_TRUE(checkReceived());
+}
+
+
 
 int main(int argc, char **argv)
 {
