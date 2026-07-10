@@ -120,7 +120,7 @@ TYPED_TEST(PjmsgMcapIntrometryFixture, MultipleSources)
 
 TYPED_TEST(PjmsgMcapIntrometryFixture, Flush)
 {
-    intrometry_tests::ArilesDebug debug{};
+    const intrometry_tests::ArilesDebug debug{};
     this->intrometry_sink_.assign(debug, intrometry::Source::Parameters(/*persistent_structure=*/true));
 
     this->intrometry_sink_.write(debug);

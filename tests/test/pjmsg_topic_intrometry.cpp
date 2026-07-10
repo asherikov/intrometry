@@ -79,7 +79,7 @@ TEST_F(PjmsgTopicIntrometryFixture, MultipleSources)
 
 TEST_F(PjmsgTopicIntrometryFixture, Flush)
 {
-    intrometry_tests::ArilesDebug debug{};
+    const intrometry_tests::ArilesDebug debug{};
     intrometry_sink_.assign(debug, intrometry::Source::Parameters(/*persistent_structure=*/true));
 
     intrometry_sink_.write(debug);
