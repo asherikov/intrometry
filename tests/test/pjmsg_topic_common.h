@@ -60,6 +60,7 @@ namespace intrometry_tests
     {
     public:
         std::shared_ptr<rclcpp::Node> node_;
+        rclcpp::executors::SingleThreadedExecutor executor_;
         Subscription<NamesMsg> names_subscription_;
         Subscription<ValuesMsg> values_subscription_;
         std::thread spinner_;
@@ -78,6 +79,7 @@ namespace intrometry_tests
 
             names_subscription_.subscribe(node_, std::string("/intrometry/") + topic + "/names");
             values_subscription_.subscribe(node_, std::string("/intrometry/") + topic + "/values");
+            executor_.add_node(node_);
 
             this->addSupervisedThread(
                     tut::thread::Parameters(
@@ -108,7 +110,7 @@ namespace intrometry_tests
             std::chrono::time_point<std::chrono::steady_clock> time_threshold = std::chrono::steady_clock::now();
             while (rclcpp::ok() and not isThreadSupervisorInterrupted())
             {
-                rclcpp::spin_some(node_);
+                executor_.spin_some();
                 time_threshold += step;
                 std::this_thread::sleep_until(time_threshold);
             }

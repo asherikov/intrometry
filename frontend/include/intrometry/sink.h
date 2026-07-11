@@ -11,6 +11,7 @@
 
 #include <string>
 #include <memory>
+#include <cstdint>
 
 #include "source.h"
 

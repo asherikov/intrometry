@@ -219,6 +219,7 @@ namespace intrometry::pjmsg_topic
         {
         public:
             std::shared_ptr<rclcpp::Node> node_;
+            rclcpp::executors::SingleThreadedExecutor executor_;
 
         protected:
             NamesPublisherPtr names_publisher_;
@@ -251,6 +252,7 @@ namespace intrometry::pjmsg_topic
                                 .use_clock_thread(false)
                                 .enable_rosout(false));
                 thread_supervisor_.initializeLogger(node_);
+                executor_.add_node(node_);
 
                 names_publisher_ = node_->create_publisher<NamesMsg>(
                         intrometry::backend::str_concat(topic_prefix, "/names"),
@@ -287,7 +289,7 @@ namespace intrometry::pjmsg_topic
                     while (rclcpp::ok() and not thread_supervisor_.isInterrupted())
                     {
                         flush();
-                        rclcpp::spin_some(node_);
+                        executor_.spin_some();
 
                         timer.step();
                     }
