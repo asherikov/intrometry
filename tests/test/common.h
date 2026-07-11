@@ -38,6 +38,6 @@ namespace intrometry_tests
 #define ARILES2_ENTRIES(v) ARILES2_PARENT(v, ArilesDebug)
 #include ARILES2_INITIALIZE
     public:
-        virtual ~ArilesDebug1() = default;
+        ~ArilesDebug1() override = default;
     };
 }  // namespace intrometry_tests
