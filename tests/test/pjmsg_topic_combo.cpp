@@ -50,7 +50,13 @@ TEST_F(PjmsgTopicComboSinkFixture, Simple)
 TEST_F(PjmsgTopicComboSinkFixture, Flush)
 {
     intrometry_sink_.get<intrometry_tests::ArilesDebug>().size_ = 3;
-    intrometry_sink_.write();
+    for (intrometry_sink_.get<intrometry_tests::ArilesDebug>().size_ = 0;
+         intrometry_sink_.get<intrometry_tests::ArilesDebug>().size_ < 5;
+         ++intrometry_sink_.get<intrometry_tests::ArilesDebug>().size_)
+    {
+        intrometry_sink_.write();
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    }
     intrometry_sink_.flush();
 
     std::this_thread::sleep_for(std::chrono::milliseconds(500));
