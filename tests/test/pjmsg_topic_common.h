@@ -29,7 +29,7 @@ namespace intrometry_tests
     class Subscription
     {
     public:
-        typename rclcpp::Subscription<t_Message>::SharedPtr subscription_;
+        typename rclcpp::Subscription<t_Message>::SharedPtr subscription_;  // NOLINT
         std::atomic<std::size_t> counter_ = 0;
 
     public:
@@ -67,7 +67,7 @@ namespace intrometry_tests
 
     protected:
         // cppcheck-suppress virtualCallInConstructor
-        void stopSupervisedThreads() override
+        void stopSupervisedThreads() override  // NOLINT
         {
             getThreadSupervisor().stop();
         }

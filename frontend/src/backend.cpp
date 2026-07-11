@@ -12,6 +12,7 @@
 #include <ratio>
 #include <thread>
 #include <sstream>
+#include <string_view>
 #include <iomanip>
 
 #include <intrometry/backend/utils.h>
@@ -21,7 +22,7 @@ namespace
 {
     namespace intrometry_private::backend
     {
-        const std::string valid_chars = "0123456789abcdefghijklmnopqrstuvwxyz";
+        constexpr std::string_view valid_chars = "0123456789abcdefghijklmnopqrstuvwxyz";
     }  // namespace intrometry_private::backend
 }  // namespace
 
@@ -54,7 +55,7 @@ namespace intrometry::backend
         const std::uniform_int_distribution<uint32_t> distrib(
                 std::numeric_limits<uint32_t>::min(), std::numeric_limits<uint32_t>::max());
 
-        std::string result = intrometry_private::backend::valid_chars;
+        std::string result(intrometry_private::backend::valid_chars);
         std::shuffle(result.begin(), result.end(), gen);
 
         return (result.substr(0, length));

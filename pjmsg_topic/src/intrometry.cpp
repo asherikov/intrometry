@@ -65,11 +65,11 @@ namespace
 
         std::string &name(const std::size_t index)
         {
-            return (names_.names[index]);
+            return (names_.names[index]); // NOLINT
         }
         double &value(const std::size_t index)
         {
-            return (values_.values[index]);
+            return (values_.values[index]); // NOLINT
         }
 
         void reserve(const std::size_t size)
@@ -179,7 +179,7 @@ namespace intrometry::pjmsg_topic::sink
     }
 }  // namespace intrometry::pjmsg_topic::sink
 
-namespace intrometry::pjmsg_topic
+namespace
 {
     class ROSLogger
     {
@@ -211,106 +211,106 @@ namespace intrometry::pjmsg_topic
             initialized_ = true;
         }
     };
+}  // namespace
 
 
-    namespace sink
+namespace intrometry::pjmsg_topic::sink
+{
+    class Implementation
     {
-        class Implementation
+    public:
+        std::shared_ptr<rclcpp::Node> node_;
+        rclcpp::executors::SingleThreadedExecutor executor_;
+
+    protected:
+        NamesPublisherPtr names_publisher_;
+        ValuesPublisherPtr values_publisher_;
+
+    public:
+        std::atomic<uint32_t> names_version_;
+
+        intrometry::backend::SourceContainer<WriterWrapper> sources_;
+        tut::thread::Supervisor<ROSLogger> thread_supervisor_;
+
+    public:
+        Implementation(const std::string &sink_id, const std::size_t rate)
         {
-        public:
-            std::shared_ptr<rclcpp::Node> node_;
-            rclcpp::executors::SingleThreadedExecutor executor_;
+            names_version_ = intrometry::backend::getRandomUInt32();
 
-        protected:
-            NamesPublisherPtr names_publisher_;
-            ValuesPublisherPtr values_publisher_;
+            const std::string node_id = intrometry::backend::normalizeId(sink_id);
+            const std::string random_id = intrometry::backend::getRandomId(8);
+            const std::string topic_prefix =
+                    intrometry::backend::str_concat("intrometry/", node_id.empty() ? random_id : node_id);
 
-        public:
-            std::atomic<uint32_t> names_version_;
+            node_ = std::make_shared<rclcpp::Node>(
+                    intrometry::backend::str_concat("intrometry_", node_id, "_", random_id),
+                    // try to be stealthy and use minimal resources
+                    rclcpp::NodeOptions()
+                            .enable_topic_statistics(false)
+                            .start_parameter_services(false)
+                            .start_parameter_event_publisher(false)
+                            .append_parameter_override("use_sim_time", false)
+                            .use_clock_thread(false)
+                            .enable_rosout(false));
+            thread_supervisor_.initializeLogger(node_);
+            executor_.add_node(node_);
 
-            intrometry::backend::SourceContainer<WriterWrapper> sources_;
-            tut::thread::Supervisor<ROSLogger> thread_supervisor_;
+            names_publisher_ = node_->create_publisher<NamesMsg>(
+                    intrometry::backend::str_concat(topic_prefix, "/names"),
+                    rclcpp::QoS(/*history_depth=*/20).reliable().transient_local());
+            values_publisher_ = node_->create_publisher<ValuesMsg>(
+                    intrometry::backend::str_concat(topic_prefix, "/values"),
+                    rclcpp::QoS(/*history_depth=*/20).best_effort().durability_volatile());
 
-        public:
-            Implementation(const std::string &sink_id, const std::size_t rate)
+
+            thread_supervisor_.add(
+                    tut::thread::Parameters(
+                            tut::thread::Parameters::Restart(/*attempts=*/100, /*sleep_ms=*/50),
+                            tut::thread::Parameters::TerminationPolicy::IGNORE,
+                            tut::thread::Parameters::ExceptionPolicy::CATCH),
+                    &Implementation::spin,
+                    this,
+                    rate);
+        }
+
+        virtual ~Implementation()
+        {
+            thread_supervisor_.stop();
+        }
+
+
+        void spin(const std::size_t rate)
+        {
+            intrometry::backend::RateTimer timer(rate);
+
+            if (timer.valid())
             {
-                names_version_ = intrometry::backend::getRandomUInt32();
+                timer.start();
 
-                const std::string node_id = intrometry::backend::normalizeId(sink_id);
-                const std::string random_id = intrometry::backend::getRandomId(8);
-                const std::string topic_prefix =
-                        intrometry::backend::str_concat("intrometry/", node_id.empty() ? random_id : node_id);
-
-                node_ = std::make_shared<rclcpp::Node>(
-                        intrometry::backend::str_concat("intrometry_", node_id, "_", random_id),
-                        // try to be stealthy and use minimal resources
-                        rclcpp::NodeOptions()
-                                .enable_topic_statistics(false)
-                                .start_parameter_services(false)
-                                .start_parameter_event_publisher(false)
-                                .append_parameter_override("use_sim_time", false)
-                                .use_clock_thread(false)
-                                .enable_rosout(false));
-                thread_supervisor_.initializeLogger(node_);
-                executor_.add_node(node_);
-
-                names_publisher_ = node_->create_publisher<NamesMsg>(
-                        intrometry::backend::str_concat(topic_prefix, "/names"),
-                        rclcpp::QoS(/*history_depth=*/20).reliable().transient_local());
-                values_publisher_ = node_->create_publisher<ValuesMsg>(
-                        intrometry::backend::str_concat(topic_prefix, "/values"),
-                        rclcpp::QoS(/*history_depth=*/20).best_effort().durability_volatile());
-
-
-                thread_supervisor_.add(
-                        tut::thread::Parameters(
-                                tut::thread::Parameters::Restart(/*attempts=*/100, /*sleep_ms=*/50),
-                                tut::thread::Parameters::TerminationPolicy::IGNORE,
-                                tut::thread::Parameters::ExceptionPolicy::CATCH),
-                        &Implementation::spin,
-                        this,
-                        rate);
-            }
-
-            virtual ~Implementation()
-            {
-                thread_supervisor_.stop();
-            }
-
-
-            void spin(const std::size_t rate)
-            {
-                intrometry::backend::RateTimer timer(rate);
-
-                if (timer.valid())
+                while (rclcpp::ok() and not thread_supervisor_.isInterrupted())
                 {
-                    timer.start();
-
-                    while (rclcpp::ok() and not thread_supervisor_.isInterrupted())
-                    {
-                        flush();
-                        executor_.spin_some();
-
-                        timer.step();
-                    }
                     flush();
+                    executor_.spin_some();
+
+                    timer.step();
                 }
-                else
-                {
-                    thread_supervisor_.log("Incorrect spin rate");
-                }
-                thread_supervisor_.interrupt();
+                flush();
             }
-
-
-            void flush()
+            else
             {
-                sources_.tryFlush([this](WriterWrapper &writer)
-                                  { writer.publish(names_publisher_, values_publisher_); });
+                thread_supervisor_.log("Incorrect spin rate");
             }
-        };
-    }  // namespace sink
-}  // namespace intrometry::pjmsg_topic
+            thread_supervisor_.interrupt();
+        }
+
+
+        void flush()
+        {
+            sources_.tryFlush([this](WriterWrapper &writer)
+                              { writer.publish(names_publisher_, values_publisher_); });
+        }
+    };
+}  // namespace intrometry::pjmsg_topic::sink
 
 
 
