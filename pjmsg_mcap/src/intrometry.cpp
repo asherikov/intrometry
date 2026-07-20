@@ -94,7 +94,8 @@ namespace
         std::shared_ptr<NameValueContainer> data_;
         ariles2::namevalue2::Writer writer_;
 
-        bool serialized_;
+        std::mutex mutex_;
+        std::atomic<bool> flushed_;
 
     public:
         WriterWrapper(
@@ -114,23 +115,31 @@ namespace
             ariles2::apply(writer_, source, id_);
             data_->finalize(writer_parameters_.persistent_structure_, 0, names_version);
 
-            serialized_ = true;  // do not serialize on assignment
+            flushed_ = true;  // do not serialize on assignment
         }
 
         void serialize(pjmsg_mcap_wrapper::Writer &mcap_writer)
         {
-            if (not serialized_)
+            if (not flushed_)
             {
-                mcap_writer.write(data_->message_);
-                serialized_ = true;
+                if (mutex_.try_lock())
+                {
+                    mcap_writer.write(data_->message_);
+                    flushed_ = true;
+                    mutex_.unlock();
+                }
             }
         }
 
         void write(const ariles2::DefaultBase &source, const uint64_t timestamp, std::atomic<uint32_t> &names_version)
         {
-            ariles2::apply(writer_, source, id_);
-            data_->finalize(writer_parameters_.persistent_structure_, timestamp, names_version);
-            serialized_ = false;
+            if (mutex_.try_lock())
+            {
+                ariles2::apply(writer_, source, id_);
+                data_->finalize(writer_parameters_.persistent_structure_, timestamp, names_version);
+                flushed_ = false;
+                mutex_.unlock();
+            }
         }
     };
 }  // namespace

@@ -100,8 +100,8 @@ namespace
         std::shared_ptr<NameValueContainer> data_;
         ariles2::namevalue2::Writer writer_;
 
-        bool published_;
-
+        std::mutex mutex_;
+        std::atomic<bool> flushed_;
 
     public:
         WriterWrapper(
@@ -121,21 +121,25 @@ namespace
             ariles2::apply(writer_, source, id_);
             data_->finalize(writer_parameters_.persistent_structure_, rclcpp::Time(0), names_version);
 
-            published_ = true;  // do not publish on assignment
+            flushed_ = true;  // do not publish on assignment
         }
 
 
         void publish(const NamesPublisherPtr &names_sink, const ValuesPublisherPtr &values_sink)
         {
-            if (not published_)
+            if (not flushed_)
             {
-                if (data_->new_names_version_)
+                if (mutex_.try_lock())
                 {
-                    names_sink->publish(data_->names_);
-                    data_->new_names_version_ = false;
+                    if (data_->new_names_version_)
+                    {
+                        names_sink->publish(data_->names_);
+                        data_->new_names_version_ = false;
+                    }
+                    values_sink->publish(data_->values_);
+                    flushed_ = true;
+                    mutex_.unlock();
                 }
-                values_sink->publish(data_->values_);
-                published_ = true;
             }
         }
 
@@ -145,9 +149,13 @@ namespace
                 const rclcpp::Time &timestamp,
                 std::atomic<uint32_t> &names_version)
         {
-            ariles2::apply(writer_, source, id_);
-            data_->finalize(writer_parameters_.persistent_structure_, timestamp, names_version);
-            published_ = false;
+            if (mutex_.try_lock())
+            {
+                ariles2::apply(writer_, source, id_);
+                data_->finalize(writer_parameters_.persistent_structure_, timestamp, names_version);
+                flushed_ = false;
+                mutex_.unlock();
+            }
         }
     };
 }  // namespace

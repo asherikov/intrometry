@@ -85,29 +85,7 @@ namespace intrometry::backend
     class INTROMETRY_HIDDEN SourceContainer : public SourceContainerBase
     {
     protected:
-        class SourceWithMutex
-        {
-        public:
-            t_Value value_;
-            std::mutex mutex_;
-
-        public:
-            template <class... t_Args>
-            explicit SourceWithMutex(t_Args &&...args) : value_(std::forward<t_Args>(args)...)
-            {
-            }
-
-            void tryVisit(const std::function<void(t_Value &)> &visitor)
-            {
-                if (mutex_.try_lock())
-                {
-                    visitor(value_);
-                    mutex_.unlock();
-                }
-            }
-        };
-
-        using SourceMap = std::unordered_map<Key, SourceWithMutex, Hasher>;
+        using SourceMap = std::unordered_map<Key, t_Value, Hasher>;
 
     protected:
         SourceMap sources_;
@@ -117,9 +95,9 @@ namespace intrometry::backend
         {
             if (sources_mutex_.try_lock_shared())
             {
-                for (std::pair<const Key, SourceWithMutex> &source : sources_)
+                for (std::pair<const Key, t_Value> &source : sources_)
                 {
-                    source.second.tryVisit(visitor);
+                    visitor(source.second);
                 }
 
                 sources_mutex_.unlock();
@@ -160,7 +138,7 @@ namespace intrometry::backend
                     return (false);
                 }
 
-                source_it->second.tryVisit(visitor);
+                visitor(source_it->second);
                 sources_mutex_.unlock();
             }
             return (true);
