@@ -4,10 +4,12 @@ find_package(thread_supervisor REQUIRED)
 set(TEST_BACKEND pjmsg_mcap)
 foreach(TEST_NAME combo intrometry)
     find_package(intrometry_${TEST_BACKEND} REQUIRED)
+    find_package(pjmsg_mcap_wrapper REQUIRED)
 
     add_executable(test_${TEST_BACKEND}_${TEST_NAME} ${TEST_BACKEND}_${TEST_NAME}.cpp)
     target_link_libraries(test_${TEST_BACKEND}_${TEST_NAME}
         intrometry::${TEST_BACKEND}
+        pjmsg_mcap_wrapper::pjmsg_mcap_wrapper
         GTest::GTest
     )
     add_test(test_${TEST_BACKEND}_${TEST_NAME} test_${TEST_BACKEND}_${TEST_NAME})

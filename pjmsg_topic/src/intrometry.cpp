@@ -29,6 +29,12 @@ namespace
 
     using NamesPublisherPtr = rclcpp::Publisher<NamesMsg>::SharedPtr;
     using ValuesPublisherPtr = rclcpp::Publisher<ValuesMsg>::SharedPtr;
+
+    struct Message
+    {
+        NamesMsg names_;
+        ValuesMsg values_;
+    };
 }  // namespace
 
 
@@ -37,26 +43,48 @@ namespace
     class NameValueContainer : public ariles2::namevalue2::NameValueContainer
     {
     public:
-        NamesMsg names_;
-        ValuesMsg values_;
+        std::shared_ptr<Message> message_in_;
+        std::shared_ptr<Message> message_out_;
         std::size_t previous_size_ = 0;
         bool new_names_version_ = false;
 
-    public:  // ariles stuff
+    public:
+        NameValueContainer()
+        {
+            message_out_ = std::make_shared<Message>();
+            message_in_ = std::make_shared<Message>();
+        }
+
+        bool swap()
+        {
+            const bool publish_names = new_names_version_;
+            if (new_names_version_)
+            {
+                // message_out_->names_ = message_in_->names_;
+                message_out_->names_.names.resize(message_in_->names_.names.size());
+                message_out_->values_.values.resize(message_out_->names_.names.size());
+                message_out_->names_.names_version = message_in_->names_.names_version;
+                message_out_->values_.names_version = message_out_->names_.names_version;
+                new_names_version_ = false;
+            }
+            std::swap(message_out_, message_in_);
+            return publish_names;
+        }
+
         void finalize(
                 const bool persistent_structure,
                 const rclcpp::Time &timestamp,
                 std::atomic<uint32_t> &names_version)
         {
-            names_.header.stamp = timestamp;
-            values_.header.stamp = timestamp;
+            message_in_->names_.header.stamp = timestamp;
+            message_in_->values_.header.stamp = timestamp;
 
             // we cannot know for sure that the names have not changed
             // without comparing all the names, do our best
             if (not persistent_structure or previous_size_ != size())
             {
-                names_.names_version = names_version.fetch_add(1);
-                values_.names_version = names_.names_version;
+                message_in_->names_.names_version = names_version.fetch_add(1);
+                message_in_->values_.names_version = message_in_->names_.names_version;
                 new_names_version_ = true;
             }
 
@@ -65,26 +93,26 @@ namespace
 
         std::string &name(const std::size_t index)
         {
-            return (names_.names[index]); // NOLINT
+            return (message_in_->names_.names[index]); // NOLINT
         }
         double &value(const std::size_t index)
         {
-            return (values_.values[index]); // NOLINT
+            return (message_in_->values_.values[index]); // NOLINT
         }
 
         void reserve(const std::size_t size)
         {
-            names_.names.reserve(size);
-            values_.values.reserve(size);
+            message_in_->names_.names.reserve(size);
+            message_in_->values_.values.reserve(size);
         }
         [[nodiscard]] std::size_t size() const
         {
-            return (names_.names.size());
+            return (message_in_->names_.names.size());
         }
         void resize(const std::size_t size)
         {
-            names_.names.resize(size);
-            values_.values.resize(size);
+            message_in_->names_.names.resize(size);
+            message_in_->values_.values.resize(size);
         }
     };
 }  // namespace
@@ -100,7 +128,8 @@ namespace
         std::shared_ptr<NameValueContainer> data_;
         ariles2::namevalue2::Writer writer_;
 
-        std::mutex mutex_;
+        std::mutex mutex_in_;
+        std::mutex mutex_out_;
         std::atomic<bool> flushed_;
 
     public:
@@ -129,16 +158,17 @@ namespace
         {
             if (not flushed_)
             {
-                if (mutex_.try_lock())
+                if (mutex_in_.try_lock() && mutex_out_.try_lock())
                 {
-                    if (data_->new_names_version_)
+                    const bool publish_names = data_->swap();
+                    mutex_in_.unlock();
+                    if (publish_names)
                     {
-                        names_sink->publish(data_->names_);
-                        data_->new_names_version_ = false;
+                        names_sink->publish(data_->message_out_->names_);
                     }
-                    values_sink->publish(data_->values_);
+                    values_sink->publish(data_->message_out_->values_);
                     flushed_ = true;
-                    mutex_.unlock();
+                    mutex_out_.unlock();
                 }
             }
         }
@@ -149,12 +179,12 @@ namespace
                 const rclcpp::Time &timestamp,
                 std::atomic<uint32_t> &names_version)
         {
-            if (mutex_.try_lock())
+            if (mutex_in_.try_lock())
             {
                 ariles2::apply(writer_, source, id_);
                 data_->finalize(writer_parameters_.persistent_structure_, timestamp, names_version);
                 flushed_ = false;
-                mutex_.unlock();
+                mutex_in_.unlock();
             }
         }
     };

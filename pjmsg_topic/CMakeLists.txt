@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.8)
+cmake_minimum_required(VERSION 3.10)
 project(intrometry_pjmsg_topic VERSION 1.0.0 LANGUAGES CXX)
 
 include(ccws_set_cmake_flags OPTIONAL RESULT_VARIABLE CCWS_ON)

@@ -14,6 +14,7 @@
     <depend>thread_supervisor</depend>
     <depend>intrometry_pjmsg_mcap</depend>
     <depend>intrometry_pjmsg_topic</depend>
+    <depend>pjmsg_mcap_wrapper</depend>
 
     <test_depend>gtest</test_depend>
 </package>

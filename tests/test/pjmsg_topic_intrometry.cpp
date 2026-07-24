@@ -91,6 +91,76 @@ TEST_F(PjmsgTopicIntrometryFixture, Flush)
 }
 
 
+TEST_F(PjmsgTopicIntrometryFixture, ContainerDynamic)
+{
+    intrometry_tests::ArilesDebugContainer container{};
+    intrometry_sink_.assign(container);
+
+    for (std::size_t i = 0; i < 5; ++i)
+    {
+        container.entries_.resize(i + 1);
+        for (std::size_t j = 0; j < container.entries_.size(); ++j)
+        {
+            container.entries_.at(j).size_ = j;
+            container.entries_.at(j).duration_ = static_cast<double>(i);
+        }
+        intrometry_sink_.write(container);
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    }
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    intrometry_sink_.retract(container);
+    ASSERT_TRUE(checkReceived());
+}
+
+
+TEST_F(PjmsgTopicIntrometryFixture, ContainerPersistent)
+{
+    intrometry_tests::ArilesDebugContainer container{};
+    intrometry_sink_.assign(container, intrometry::Source::Parameters(/*persistent_structure=*/true));
+
+    for (std::size_t i = 0; i < 5; ++i)
+    {
+        container.entries_.resize(i + 1);
+        for (std::size_t j = 0; j < container.entries_.size(); ++j)
+        {
+            container.entries_.at(j).size_ = j;
+            container.entries_.at(j).duration_ = static_cast<double>(i);
+        }
+        intrometry_sink_.write(container);
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    }
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    intrometry_sink_.retract(container);
+    ASSERT_TRUE(checkReceived());
+}
+
+
+TEST_F(PjmsgTopicIntrometryFixture, ContainerShrinking)
+{
+    intrometry_tests::ArilesDebugContainer container{};
+    intrometry_sink_.assign(container, intrometry::Source::Parameters(/*persistent_structure=*/true));
+
+    constexpr std::size_t start_size = 5;
+    for (std::size_t i = 0; i < start_size; ++i)
+    {
+        container.entries_.resize(start_size - i);
+        for (std::size_t j = 0; j < container.entries_.size(); ++j)
+        {
+            container.entries_.at(j).size_ = j;
+            container.entries_.at(j).duration_ = static_cast<double>(i);
+        }
+        intrometry_sink_.write(container);
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    }
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    intrometry_sink_.retract(container);
+    ASSERT_TRUE(checkReceived());
+}
+
+
 
 int main(int argc, char **argv)
 {

@@ -35,50 +35,65 @@ namespace
     {
     public:
         std::size_t previous_size_ = 0;
-        bool new_names_version_ = false;
-        pjmsg_mcap_wrapper::Message message_;
+        std::shared_ptr<pjmsg_mcap_wrapper::Message> message_in_;
+        std::shared_ptr<pjmsg_mcap_wrapper::Message> message_out_;
 
 
-    public:  // ariles stuff
+    public:
+        NameValueContainer()
+        {
+            message_in_ = std::make_shared<pjmsg_mcap_wrapper::Message>();
+            message_out_ = std::make_shared<pjmsg_mcap_wrapper::Message>();
+        }
+
+        void swap()
+        {
+            if (message_out_->getVersion() != message_in_->getVersion())
+            {
+                message_out_->reset(*message_in_);
+            }
+            std::swap(message_out_, message_in_);
+        }
+
         void finalize(const bool persistent_structure, const uint64_t timestamp, std::atomic<uint32_t> &names_version)
         {
-            message_.setStamp(timestamp);
+            message_in_->setStamp(timestamp);
 
             // we cannot know for sure that the names have not changed
             // without comparing all the names, do our best
-            if (not persistent_structure or previous_size_ != message_.size())
+            if (not persistent_structure or previous_size_ != message_in_->size())
             {
                 // fetch_add atomically returns the old value and increments,
                 // preventing concurrent writes from getting the same version.
-                message_.setVersion(names_version.fetch_add(1));
+                message_in_->setVersion(names_version.fetch_add(1));
             }
 
-            previous_size_ = message_.size();
+            previous_size_ = message_in_->size();
         }
 
         std::string &name(const std::size_t index)
         {
-            return (message_.name(index));
+            return (message_in_->name(index));
         }
 
         double &value(const std::size_t index)
         {
-            return (message_.value(index));
+            return (message_in_->value(index));
         }
 
         void reserve(const std::size_t size)
         {
-            message_.reserve(size);
+            message_in_->reserve(size);
         }
 
         void resize(const std::size_t size)
         {
-            message_.resize(size);
+            message_in_->resize(size);
         }
 
         [[nodiscard]] std::size_t size() const
         {
-            return (message_.size());
+            return (message_in_->size());
         }
     };
 }  // namespace
@@ -94,7 +109,8 @@ namespace
         std::shared_ptr<NameValueContainer> data_;
         ariles2::namevalue2::Writer writer_;
 
-        std::mutex mutex_;
+        std::mutex mutex_in_;
+        std::mutex mutex_out_;
         std::atomic<bool> flushed_;
 
     public:
@@ -122,23 +138,25 @@ namespace
         {
             if (not flushed_)
             {
-                if (mutex_.try_lock())
+                if (mutex_in_.try_lock() && mutex_out_.try_lock())
                 {
-                    mcap_writer.write(data_->message_);
+                    data_->swap();
+                    mutex_in_.unlock();
+                    mcap_writer.write(*(data_->message_out_));
                     flushed_ = true;
-                    mutex_.unlock();
+                    mutex_out_.unlock();
                 }
             }
         }
 
         void write(const ariles2::DefaultBase &source, const uint64_t timestamp, std::atomic<uint32_t> &names_version)
         {
-            if (mutex_.try_lock())
+            if (mutex_in_.try_lock())
             {
                 ariles2::apply(writer_, source, id_);
                 data_->finalize(writer_parameters_.persistent_structure_, timestamp, names_version);
                 flushed_ = false;
-                mutex_.unlock();
+                mutex_in_.unlock();
             }
         }
     };

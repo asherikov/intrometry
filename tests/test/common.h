@@ -40,4 +40,13 @@ namespace intrometry_tests
     public:
         ~ArilesDebug1() override = default;
     };
+
+    class ArilesDebugContainer : public ariles2::DefaultBase
+    {
+#define ARILES2_DEFAULT_ID "ArilesDebugContainer"
+#define ARILES2_ENTRIES(v) ARILES2_TYPED_ENTRY_(v, entries, std::vector<ArilesDebug>)
+#include ARILES2_INITIALIZE
+    public:
+        virtual ~ArilesDebugContainer() = default;
+    };
 }  // namespace intrometry_tests
